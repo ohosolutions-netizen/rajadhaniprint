@@ -50,13 +50,21 @@ const SUMMARY_ONLY_OVERFLOW_FILL = 26;
 const SMALL_COMBINED_FILL_TARGET = 13;
 const LARGE_COMBINED_FILL_TARGET = 14;
 const HEADER_TOP_SPACE = '148px';
-const SUMMARY_FIRST_PAGE_HSN_ROWS = 10;
-const SUMMARY_CONTINUATION_HSN_ROWS = 24;
-const SUMMARY_LAST_PAGE_HSN_ROWS_WITH_TERMS = 12;
+const SUMMARY_SINGLE_PAGE_HSN_WITH_TERMS = 18;
+const SUMMARY_FIRST_PAGE_HSN_ROWS = 36;
+const SUMMARY_CONTINUATION_HSN_ROWS = 30;
+const SUMMARY_LAST_PAGE_HSN_ROWS_WITH_TERMS = 0;
 
 function buildSummarySegments(hsnList) {
-  if (hsnList.length <= SUMMARY_FIRST_PAGE_HSN_ROWS) {
+  if (hsnList.length <= SUMMARY_SINGLE_PAGE_HSN_WITH_TERMS) {
     return [{ hsnList, showTop: true, showTerms: true }];
+  }
+
+  if (hsnList.length <= SUMMARY_FIRST_PAGE_HSN_ROWS) {
+    return [
+      { hsnList, showTop: true, showTerms: false },
+      { hsnList: [], showTop: false, showTerms: true },
+    ];
   }
 
   const segments = [];

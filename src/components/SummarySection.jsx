@@ -130,29 +130,29 @@ export function HsnTable({ hsnList }) {
     >
       <thead>
         <tr>
-          <th rowSpan="2" style={{ border: B, fontWeight: 'bold', padding: '3px 4px' }}>HSN/SAC</th>
-          <th rowSpan="2" style={{ border: B, fontWeight: 'bold', padding: '3px 4px' }}>Taxable Value</th>
-          <th colSpan="2" style={{ border: B, fontWeight: 'bold', padding: '3px 4px' }}>Central Tax</th>
-          <th colSpan="2" style={{ border: B, fontWeight: 'bold', padding: '3px 4px' }}>State Tax</th>
-          <th rowSpan="2" style={{ border: B, fontWeight: 'bold', padding: '3px 4px' }}>Total Tax Amount</th>
+          <th rowSpan="2" style={{ border: B, fontWeight: 'bold', padding: '2px 4px', lineHeight: 1.1 }}>HSN/SAC</th>
+          <th rowSpan="2" style={{ border: B, fontWeight: 'bold', padding: '2px 4px', lineHeight: 1.1 }}>Taxable Value</th>
+          <th colSpan="2" style={{ border: B, fontWeight: 'bold', padding: '2px 4px', lineHeight: 1.1 }}>Central Tax</th>
+          <th colSpan="2" style={{ border: B, fontWeight: 'bold', padding: '2px 4px', lineHeight: 1.1 }}>State Tax</th>
+          <th rowSpan="2" style={{ border: B, fontWeight: 'bold', padding: '2px 4px', lineHeight: 1.1 }}>Total Tax Amount</th>
         </tr>
         <tr>
-          <th style={{ border: B, fontWeight: 'bold', padding: '3px 4px' }}>Rate</th>
-          <th style={{ border: B, fontWeight: 'bold', padding: '3px 4px' }}>Amount</th>
-          <th style={{ border: B, fontWeight: 'bold', padding: '3px 4px' }}>Rate</th>
-          <th style={{ border: B, fontWeight: 'bold', padding: '3px 4px' }}>Amount</th>
+          <th style={{ border: B, fontWeight: 'bold', padding: '2px 4px', lineHeight: 1.1 }}>Rate</th>
+          <th style={{ border: B, fontWeight: 'bold', padding: '2px 4px', lineHeight: 1.1 }}>Amount</th>
+          <th style={{ border: B, fontWeight: 'bold', padding: '2px 4px', lineHeight: 1.1 }}>Rate</th>
+          <th style={{ border: B, fontWeight: 'bold', padding: '2px 4px', lineHeight: 1.1 }}>Amount</th>
         </tr>
       </thead>
       <tbody>
         {hsnList.map((item, idx) => (
           <tr key={idx}>
-            <td style={{ border: B, fontWeight: 'bold', padding: '2px 4px' }}>{item.HSN}</td>
-            <td style={{ border: B, fontWeight: 'bold', padding: '2px 4px' }}>{item.Total_Amount.toFixed(2)}</td>
-            <td style={{ border: B, fontWeight: 'bold', padding: '2px 4px' }}>{(item.Tax_Value / 2).toFixed(1)}</td>
-            <td style={{ border: B, fontWeight: 'bold', padding: '2px 4px' }}>{(item.Tax_Amount / 2).toFixed(3)}</td>
-            <td style={{ border: B, fontWeight: 'bold', padding: '2px 4px' }}>{(item.Tax_Value / 2).toFixed(1)}</td>
-            <td style={{ border: B, fontWeight: 'bold', padding: '2px 4px' }}>{(item.Tax_Amount / 2).toFixed(3)}</td>
-            <td style={{ border: B, fontWeight: 'bold', padding: '2px 4px' }}>{item.Tax_Amount.toFixed(2)}</td>
+            <td style={{ border: B, fontWeight: 'bold', padding: '1px 4px', lineHeight: 1.1 }}>{item.HSN}</td>
+            <td style={{ border: B, fontWeight: 'bold', padding: '1px 4px', lineHeight: 1.1 }}>{item.Total_Amount.toFixed(2)}</td>
+            <td style={{ border: B, fontWeight: 'bold', padding: '1px 4px', lineHeight: 1.1 }}>{(item.Tax_Value / 2).toFixed(1)}</td>
+            <td style={{ border: B, fontWeight: 'bold', padding: '1px 4px', lineHeight: 1.1 }}>{(item.Tax_Amount / 2).toFixed(3)}</td>
+            <td style={{ border: B, fontWeight: 'bold', padding: '1px 4px', lineHeight: 1.1 }}>{(item.Tax_Value / 2).toFixed(1)}</td>
+            <td style={{ border: B, fontWeight: 'bold', padding: '1px 4px', lineHeight: 1.1 }}>{(item.Tax_Amount / 2).toFixed(3)}</td>
+            <td style={{ border: B, fontWeight: 'bold', padding: '1px 4px', lineHeight: 1.1 }}>{item.Tax_Amount.toFixed(2)}</td>
           </tr>
         ))}
       </tbody>
