@@ -7,13 +7,32 @@ import { buildHsnList, numberToWords } from '../data/invoiceData';
 /**
  * Renders a single invoice page (header + items, optionally + summary).
  */
-function InvoicePage({ data, copyLabel, lineItems, showSummary, hsnList, fillerCount, showFillerOnly, fillerOnlyCount, marginTop, invoiceId, suppressTotal = false }) {
+function InvoicePage({
+  data,
+  copyLabel,
+  lineItems,
+  showSummary,
+  hsnList,
+  fillerCount,
+  showFillerOnly,
+  fillerOnlyCount,
+  marginTop,
+  invoiceId,
+  suppressTotal = false,
+  extendAfterTotal = false,
+}) {
   const totalqty = lineItems.reduce((s, i) => s + i.qty, 0);
   return (
     <div className="invoice-page-content" style={{ marginBottom: showSummary ? 0 : undefined }}>
       <InvoiceHeader data={{ ...data, marginTop: marginTop || '0px' }} copyLabel={copyLabel} invoiceId={invoiceId} />
       {!showFillerOnly ? (
-        <ItemsTable lineItems={lineItems} totalqty={totalqty} fillerCount={fillerCount || 0} suppressTotal={suppressTotal} />
+        <ItemsTable
+          lineItems={lineItems}
+          totalqty={totalqty}
+          fillerCount={fillerCount || 0}
+          suppressTotal={suppressTotal}
+          extendAfterTotal={extendAfterTotal}
+        />
       ) : (
         <div style={{ height: fillerOnlyCount ? `${Math.max(0, fillerOnlyCount) * 17}px` : 0 }} />
       )}
@@ -50,19 +69,27 @@ function chunkLineItems(lineItems, chunkSize) {
   return chunks;
 }
 
+// Items that fit on a single item-only page
 const ITEM_ONLY_PAGE_SIZE = 44;
-const COMBINED_LAST_PAGE_SIZE = 15;
+// Branch A: below this count + small HSN → all on one page
+const SAFE_SINGLE_PAGE_ITEM_LIMIT = 8;
+// Max HSN rows to allow combined single page
 const COMBINED_HSN_LIMIT = 4;
-const ITEM_ONLY_FILL_TARGET = 43;
-const SUMMARY_ONLY_FILL_TARGET = 15;
-const SUMMARY_ONLY_OVERFLOW_FILL = 26;
-const SMALL_COMBINED_FILL_TARGET = 13;
-const LARGE_COMBINED_FILL_TARGET = 14;
+// Pixels reserved for the printed company header strip
 const HEADER_TOP_SPACE = '141px';
-const INLINE_SUMMARY_TOP_MAX_ITEMS = 24;
-const SUMMARY_SINGLE_PAGE_HSN_WITH_TERMS = 18;
+// "Row units" consumed by the summary top block (totals + QR)
+const SUMMARY_ON_ITEM_PAGE_UNITS = 12;
+// Row units consumed by the HSN table header row (spans 2 header rows)
+const ITEM_PAGE_HSN_HEADER_UNITS = 2;
+// Row units consumed by the terms & conditions block
+const TERMS_SECTION_UNITS = 12;
+// HSN rows small enough to keep terms on the same summary page
+const SUMMARY_TOP_PAGE_HSN_WITH_TERMS_LIMIT = 1;
+// Maximum HSN rows on the first summary page
 const SUMMARY_FIRST_PAGE_HSN_ROWS = 36;
+// Maximum HSN rows on a continuation summary page
 const SUMMARY_CONTINUATION_HSN_ROWS = 30;
+// HSN rows that can share the final summary page with terms
 const SUMMARY_LAST_PAGE_HSN_ROWS_WITH_TERMS = 0;
 
 function removeTopFromFirstSummarySegment(segments) {
@@ -71,8 +98,13 @@ function removeTopFromFirstSummarySegment(segments) {
   ));
 }
 
+/**
+ * Splits hsnList into page segments, each carrying showTop / showTerms flags.
+ * Terms are treated as an independent block: kept on the first page only when
+ * the HSN block is tiny enough to leave room; otherwise pushed to a dedicated page.
+ */
 function buildSummarySegments(hsnList) {
-  if (hsnList.length <= SUMMARY_SINGLE_PAGE_HSN_WITH_TERMS) {
+  if (hsnList.length <= SUMMARY_TOP_PAGE_HSN_WITH_TERMS_LIMIT) {
     return [{ hsnList, showTop: true, showTerms: true }];
   }
 
@@ -118,7 +150,6 @@ function buildSummarySegments(hsnList) {
     }
 
     const nextIndex = index + SUMMARY_CONTINUATION_HSN_ROWS;
-
     segments.push({
       hsnList: hsnList.slice(index, nextIndex),
       showTop: false,
@@ -128,6 +159,65 @@ function buildSummarySegments(hsnList) {
   }
 
   return segments;
+}
+
+/**
+ * Decides which post-item sections (summary top, HSN rows, terms) fit on the
+ * current item page and which must overflow to dedicated summary pages.
+ *
+ * Rules (from spec):
+ *  - Summary top only appears if it AND the entire HSN block both fit.
+ *  - HSN is the only spillable section (may continue across pages).
+ *  - Terms never split; if they don't fit after HSN they move to the next page.
+ *
+ * @param {Array}  hsnList            - Full HSN grouped rows.
+ * @param {number} itemPageSpareUnits - Spare row-equivalent units on the item page.
+ */
+function buildPostItemSections(hsnList, itemPageSpareUnits = 0) {
+  const remainingHsn = [...hsnList];
+  const itemPageSection = {
+    showTop: false,
+    hsnList: [],
+    showTerms: false,
+  };
+
+  let termsPlaced = false;
+  let topPlaced = false;
+
+  const fullHsnUnits = remainingHsn.length > 0
+    ? ITEM_PAGE_HSN_HEADER_UNITS + remainingHsn.length
+    : 0;
+  // Summary top and the entire HSN block must both fit together or neither goes inline.
+  const canFitTopAndEntireHsn = itemPageSpareUnits >= SUMMARY_ON_ITEM_PAGE_UNITS + fullHsnUnits;
+
+  if (canFitTopAndEntireHsn) {
+    itemPageSection.showTop = true;
+    topPlaced = true;
+
+    itemPageSection.hsnList = remainingHsn.splice(0);
+    const unitsLeft = itemPageSpareUnits - SUMMARY_ON_ITEM_PAGE_UNITS - fullHsnUnits;
+
+    if (remainingHsn.length === 0 && unitsLeft >= TERMS_SECTION_UNITS) {
+      itemPageSection.showTerms = true;
+      termsPlaced = true;
+    }
+  }
+
+  if (remainingHsn.length === 0) {
+    return {
+      itemPageSection,
+      summaryPages: termsPlaced ? [] : [{ hsnList: [], showTop: false, showTerms: true }],
+    };
+  }
+
+  const summaryPages = topPlaced
+    ? removeTopFromFirstSummarySegment(buildSummarySegments(remainingHsn))
+    : buildSummarySegments(remainingHsn);
+
+  return {
+    itemPageSection,
+    summaryPages,
+  };
 }
 
 function renderSummarySegmentPage({ copyLabel, summaryData, invoiceId, segment, isLastCopy, isLastPage, mt2, pageKey }) {
@@ -158,79 +248,15 @@ function renderSummarySegmentPage({ copyLabel, summaryData, invoiceId, segment, 
   );
 }
 
-function buildLongInvoicePlan(lines, hsnsize, lineItems) {
-  const fullPageCount = Math.floor(lines / ITEM_ONLY_PAGE_SIZE);
-  const remainder = lines % ITEM_ONLY_PAGE_SIZE;
-  const baseChunks = chunkLineItems(lineItems, ITEM_ONLY_PAGE_SIZE);
-  const plan = [];
-
-  if (remainder === 0) {
-    baseChunks.forEach((chunk) => {
-      plan.push({
-        type: 'items',
-        lineItems: chunk,
-        fillerCount: 0,
-      });
-    });
-    plan.push({
-      type: 'summary-only',
-      fillerOnlyCount: hsnsize > 24
-        ? SUMMARY_ONLY_OVERFLOW_FILL
-        : Math.max(0, SUMMARY_ONLY_FILL_TARGET - hsnsize),
-    });
-    return plan;
-  }
-
-  const leadingFullChunks = baseChunks.slice(0, fullPageCount);
-  const trailingChunk = baseChunks[fullPageCount] || [];
-  const canUseCombinedLastPage =
-    remainder <= COMBINED_LAST_PAGE_SIZE &&
-    remainder + hsnsize <= COMBINED_LAST_PAGE_SIZE + 4 &&
-    hsnsize <= COMBINED_HSN_LIMIT;
-
-  leadingFullChunks.forEach((chunk) => {
-    plan.push({
-      type: 'items',
-      lineItems: chunk,
-      fillerCount: 0,
-    });
-  });
-
-  if (canUseCombinedLastPage) {
-    plan.push({
-      type: 'combined',
-      lineItems: trailingChunk,
-      fillerCount: hsnsize <= COMBINED_HSN_LIMIT
-        ? Math.max(0, SMALL_COMBINED_FILL_TARGET - trailingChunk.length)
-        : 0,
-    });
-    return plan;
-  }
-
-  plan.push({
-    type: 'items',
-    lineItems: trailingChunk,
-    fillerCount: trailingChunk.length <= COMBINED_LAST_PAGE_SIZE
-      ? Math.max(0, LARGE_COMBINED_FILL_TARGET - trailingChunk.length)
-      : Math.max(0, ITEM_ONLY_FILL_TARGET - trailingChunk.length),
-  });
-
-  plan.push({
-    type: 'summary-only',
-    fillerOnlyCount: hsnsize > 24
-      ? SUMMARY_ONLY_OVERFLOW_FILL
-      : Math.max(0, SUMMARY_ONLY_FILL_TARGET - hsnsize),
-  });
-
-  return plan;
-}
-
 /**
- * Renders one complete invoice copy set (may span 1 or 2 pages depending on item/HSN count).
- * Mirrors the Zoho Deluge branching logic:
- *   Branch A: lines <= 16 && totaline <= 18  → all on one page
- *   Branch B: lines <= 16 && totaline > 18   → page1: items; page2: filler + summary + HSN + terms
- *   Branch C: lines > 16 && lines <= 46      → page1: items (44-row filler); page2: filler + summary + HSN + terms
+ * Renders one complete invoice copy set (may span multiple pages).
+ *
+ * Branch A: ≤8 items, small HSN           → all on one page
+ * Branch B: ≤16 items                     → page 1: items; page 2+: summary/HSN/terms
+ * Branch C: ≤ITEM_ONLY_PAGE_SIZE items    → page 1: items (padded); page 2+: summary/HSN/terms
+ * Long    : >ITEM_ONLY_PAGE_SIZE items    → N item-only pages + last page + summary pages
+ *
+ * All branches use buildPostItemSections() to determine what follows items.
  */
 export function InvoiceCopy({ data, copyLabel, isLastCopy, invoiceId }) {
   const { lineItems } = data;
@@ -248,7 +274,7 @@ export function InvoiceCopy({ data, copyLabel, isLastCopy, invoiceId }) {
   const mt2 = HEADER_TOP_SPACE;
 
   /* ─── Branch A: everything fits on one page ─── */
-  if (lines <= 16 && totaline <= 18 && hsnsize <= COMBINED_HSN_LIMIT) {
+  if (lines <= SAFE_SINGLE_PAGE_ITEM_LIMIT && totaline <= 18 && hsnsize <= COMBINED_HSN_LIMIT) {
     const fillerCount = lines < 16 && hsnsize <= 4 ? 14 - lines : 0;
     return (
       <div className="a4-page">
@@ -259,27 +285,42 @@ export function InvoiceCopy({ data, copyLabel, isLastCopy, invoiceId }) {
     );
   }
 
-  /* ─── Branch B: items on page 1, summary+HSN on page 2 ─── */
-  if (lines <= 16 && (totaline > 18 || hsnsize > COMBINED_HSN_LIMIT)) {
-    const inlineSummaryTop = lines <= INLINE_SUMMARY_TOP_MAX_ITEMS;
-    const page1Filler = inlineSummaryTop ? 0 : 28;
-    const summarySegments = inlineSummaryTop
-      ? removeTopFromFirstSummarySegment(buildSummarySegments(hsnList))
-      : buildSummarySegments(hsnList);
+  /* ─── Branch B: ≤16 items — two-page split ─── */
+  if (lines <= 16) {
+    // Conservative spare-unit floor: worst case for this range is 44-16=28
+    const page1Filler = 28;
+    const { itemPageSection, summaryPages } = buildPostItemSections(hsnList, page1Filler);
+    const showInlineSection =
+      itemPageSection.showTop ||
+      itemPageSection.hsnList.length > 0 ||
+      itemPageSection.showTerms;
+    const hasMorePages = summaryPages.length > 0;
+
     return (
       <>
         <div className="a4-page">
           <div className="invoice-page-content">
             <InvoiceHeader data={{ ...summaryData, marginTop: mt1 }} copyLabel={copyLabel} invoiceId={invoiceId} />
-            <ItemsTable lineItems={lineItems} totalqty={totalqty} fillerCount={page1Filler} suppressTotal={inlineSummaryTop ? false : true} />
-            {inlineSummaryTop && (
-              <SummarySection data={summaryData} hsnList={[]} showTop showTerms={false} />
+            <ItemsTable
+              lineItems={lineItems}
+              totalqty={totalqty}
+              fillerCount={page1Filler}
+              suppressTotal={false}
+              extendAfterTotal={false}
+            />
+            {showInlineSection && (
+              <SummarySection
+                data={summaryData}
+                hsnList={itemPageSection.hsnList}
+                showTop={itemPageSection.showTop}
+                showTerms={itemPageSection.showTerms}
+              />
             )}
           </div>
-          {!isLastCopy && <div className="page-break" />}
+          {(!isLastCopy || hasMorePages) && <div className="page-break" />}
         </div>
-        {summarySegments.map((segment, index) => {
-          const isLastPage = index === summarySegments.length - 1;
+        {summaryPages.map((segment, index) => {
+          const isLastPage = index === summaryPages.length - 1;
           return renderSummarySegmentPage({
             copyLabel,
             summaryData,
@@ -295,27 +336,41 @@ export function InvoiceCopy({ data, copyLabel, isLastCopy, invoiceId }) {
     );
   }
 
-  /* ─── Branch C: >16 items, fits in 2 pages each ─── */
-  if (lines > 16 && lines <= 44) {
-    const inlineSummaryTop = lines <= INLINE_SUMMARY_TOP_MAX_ITEMS;
-    const page1Filler = inlineSummaryTop ? 0 : (lines < 44 ? 44 - lines : 0);
-    const summarySegments = inlineSummaryTop
-      ? removeTopFromFirstSummarySegment(buildSummarySegments(hsnList))
-      : buildSummarySegments(hsnList);
+  /* ─── Branch C: >16 and ≤ITEM_ONLY_PAGE_SIZE items ─── */
+  if (lines <= ITEM_ONLY_PAGE_SIZE) {
+    const page1Filler = ITEM_ONLY_PAGE_SIZE - lines;
+    const { itemPageSection, summaryPages } = buildPostItemSections(hsnList, page1Filler);
+    const showInlineSection =
+      itemPageSection.showTop ||
+      itemPageSection.hsnList.length > 0 ||
+      itemPageSection.showTerms;
+    const hasMorePages = summaryPages.length > 0;
+
     return (
       <>
         <div className="a4-page">
           <div className="invoice-page-content">
             <InvoiceHeader data={{ ...summaryData, marginTop: mt1 }} copyLabel={copyLabel} invoiceId={invoiceId} />
-            <ItemsTable lineItems={lineItems} totalqty={totalqty} fillerCount={page1Filler} suppressTotal={inlineSummaryTop ? false : true} />
-            {inlineSummaryTop && (
-              <SummarySection data={summaryData} hsnList={[]} showTop showTerms={false} />
+            <ItemsTable
+              lineItems={lineItems}
+              totalqty={totalqty}
+              fillerCount={page1Filler}
+              suppressTotal={false}
+              extendAfterTotal={false}
+            />
+            {showInlineSection && (
+              <SummarySection
+                data={summaryData}
+                hsnList={itemPageSection.hsnList}
+                showTop={itemPageSection.showTop}
+                showTerms={itemPageSection.showTerms}
+              />
             )}
           </div>
-          <div className="page-break" />
+          {(!isLastCopy || hasMorePages) && <div className="page-break" />}
         </div>
-        {summarySegments.map((segment, index) => {
-          const isLastPage = index === summarySegments.length - 1;
+        {summaryPages.map((segment, index) => {
+          const isLastPage = index === summaryPages.length - 1;
           return renderSummarySegmentPage({
             copyLabel,
             summaryData,
@@ -331,85 +386,95 @@ export function InvoiceCopy({ data, copyLabel, isLastCopy, invoiceId }) {
     );
   }
 
-  /* ─── Long invoice branches (>46 lines) ───
-     Mirrors the Zoho pattern:
-     - 46 item rows per item-only page
-     - last page may carry up to 16 remaining items + summary/HSN
-     - if that overflows, render a separate summary page
+  /* ─── Long invoice: >ITEM_ONLY_PAGE_SIZE items ───
+     Split into full item-only pages, then apply the same section-planner
+     (buildPostItemSections) to the last chunk — identical to Branches B/C.
   ─── */
-  if (lines > 46) {
-    const plan = buildLongInvoicePlan(lines, hsnsize, lineItems);
-    const lastItemPageIndex = Math.max(...plan.map((page, index) => (
-      page.type === 'summary-only' ? -1 : index
-    )));
-    const lastItemPage = plan[lastItemPageIndex];
-    const inlineSummaryTop =
-      lastItemPage?.type === 'items' &&
-      plan[lastItemPageIndex + 1]?.type === 'summary-only' &&
-      lastItemPage.lineItems.length <= INLINE_SUMMARY_TOP_MAX_ITEMS;
-    const adjustedSummarySegments = inlineSummaryTop
-      ? removeTopFromFirstSummarySegment(buildSummarySegments(hsnList))
-      : buildSummarySegments(hsnList);
+  const chunks = chunkLineItems(lineItems, ITEM_ONLY_PAGE_SIZE);
+  const leadingChunks = chunks.slice(0, -1);
+  const lastChunk = chunks[chunks.length - 1];
+  // Spare row-units available on the last item page below the items+total row
+  const lastPageSpareUnits = ITEM_ONLY_PAGE_SIZE - lastChunk.length;
 
-    return (
-      <>
-        {plan.map((page, pageIndex) => {
-          if (page.type === 'summary-only') {
-            return adjustedSummarySegments.map((segment, index) => {
-              const isLastSegment = pageIndex === plan.length - 1 && index === adjustedSummarySegments.length - 1;
-              return renderSummarySegmentPage({
-                copyLabel,
-                summaryData,
-                invoiceId,
-                segment,
-                isLastCopy,
-                isLastPage: isLastSegment,
-                mt2,
-                pageKey: `${copyLabel}-summary-${pageIndex + 1}-${index + 1}`,
-              });
-            });
-          }
+  const { itemPageSection, summaryPages } = buildPostItemSections(hsnList, lastPageSpareUnits);
+  const showInlineSection =
+    itemPageSection.showTop ||
+    itemPageSection.hsnList.length > 0 ||
+    itemPageSection.showTerms;
+  const hasMorePages = summaryPages.length > 0;
 
-          const isLastPage = pageIndex === plan.length - 1;
-          return (
-            <div className="a4-page" key={`${copyLabel}-page-${pageIndex + 1}`}>
-              <div className="invoice-page-content">
-                <InvoiceHeader
-                  data={{ ...summaryData, marginTop: mt1 }}
-                  copyLabel={copyLabel}
-                  invoiceId={invoiceId}
-                />
-                <ItemsTable
-                  lineItems={page.lineItems}
-                  totalqty={totalqty}
-                  fillerCount={inlineSummaryTop && pageIndex === lastItemPageIndex ? 0 : page.fillerCount}
-                  suppressTotal={pageIndex !== lastItemPageIndex}
-                />
-                {inlineSummaryTop && pageIndex === lastItemPageIndex && (
-                  <SummarySection data={summaryData} hsnList={[]} showTop showTerms={false} />
-                )}
-                {page.type === 'combined' && (
-                  <SummarySection data={summaryData} hsnList={hsnList} />
-                )}
-              </div>
-              {(!isLastCopy || !isLastPage) && <div className="page-break" />}
-            </div>
-          );
-        })}
-      </>
-    );
-  }
+  const pages = [];
 
-  return (
-    <div className="a4-page">
-      <div className="invoice-page-content">
-        <InvoiceHeader data={{ ...summaryData, marginTop: mt1 }} copyLabel={copyLabel} invoiceId={invoiceId} />
-        <ItemsTable lineItems={lineItems} totalqty={totalqty} fillerCount={0} />
-        <SummarySection data={summaryData} hsnList={hsnList} />
+  // Full item-only pages (no Total row, no summary)
+  leadingChunks.forEach((chunk, pageIndex) => {
+    pages.push(
+      <div className="a4-page" key={`${copyLabel}-page-${pageIndex + 1}`}>
+        <div className="invoice-page-content">
+          <InvoiceHeader
+            data={{ ...summaryData, marginTop: mt1 }}
+            copyLabel={copyLabel}
+            invoiceId={invoiceId}
+          />
+          <ItemsTable
+            lineItems={chunk}
+            totalqty={totalqty}
+            fillerCount={0}
+            suppressTotal={true}
+            extendAfterTotal={false}
+          />
+        </div>
+        <div className="page-break" />
       </div>
-      {!isLastCopy && <div className="page-break" />}
+    );
+  });
+
+  // Last item page — shows Total row, then summary sections if they fit
+  pages.push(
+    <div className="a4-page" key={`${copyLabel}-page-${chunks.length}`}>
+      <div className="invoice-page-content">
+        <InvoiceHeader
+          data={{ ...summaryData, marginTop: mt1 }}
+          copyLabel={copyLabel}
+          invoiceId={invoiceId}
+        />
+        <ItemsTable
+          lineItems={lastChunk}
+          totalqty={totalqty}
+          fillerCount={0}
+          suppressTotal={false}
+          extendAfterTotal={false}
+        />
+        {showInlineSection && (
+          <SummarySection
+            data={summaryData}
+            hsnList={itemPageSection.hsnList}
+            showTop={itemPageSection.showTop}
+            showTerms={itemPageSection.showTerms}
+          />
+        )}
+      </div>
+      {(!isLastCopy || hasMorePages) && <div className="page-break" />}
     </div>
   );
+
+  // Overflow summary / HSN / terms pages
+  summaryPages.forEach((segment, index) => {
+    const isLastPage = index === summaryPages.length - 1;
+    pages.push(
+      renderSummarySegmentPage({
+        copyLabel,
+        summaryData,
+        invoiceId,
+        segment,
+        isLastCopy,
+        isLastPage,
+        mt2,
+        pageKey: `${copyLabel}-summary-${index + 1}`,
+      })
+    );
+  });
+
+  return <>{pages}</>;
 }
 
 export default function Invoice({ data, invoiceId, copyFilter = 'all' }) {

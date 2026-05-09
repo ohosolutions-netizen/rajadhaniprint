@@ -134,10 +134,14 @@ body {
     height: 15px;
     line-height: 11px;
   }
-  .items-table tbody tr:last-child td,
-  .items-table tbody tr:last-child .items-cell {
+  .items-table tbody tr:last-child:not(.items-trailing-blank) td,
+  .items-table tbody tr:last-child:not(.items-trailing-blank) .items-cell {
     border-bottom: none !important;
     box-shadow: inset 0 -1px 0 #000;
+  }
+  .items-trailing-blank td {
+    border-bottom: 1px solid #000 !important;
+    box-shadow: none !important;
   }
   .page-break {
     display: none !important;
@@ -310,8 +314,8 @@ td, th {
 }
 
 .terms-only-page-shell .summary-section-root {
-  flex: 1;
-  min-height: 100%;
+  flex: 0 0 auto;
+  min-height: 0;
 }
 
 .terms-only-page-shell .summary-terms-anchor {

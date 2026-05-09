@@ -1,14 +1,22 @@
 import React from 'react';
 
 const borderStyle = '1px solid black';
-const totalRowCellStyle = {
+const baseTotalRowCellStyle = {
   borderLeft: borderStyle,
   borderRight: borderStyle,
   borderTop: '1.5px solid black',
   borderBottom: borderStyle,
 };
 
-export default function ItemsTable({ lineItems, totalqty, fillerCount = 0, suppressTotal = false }) {
+export default function ItemsTable({
+  lineItems,
+  totalqty,
+  fillerCount = 0,
+  suppressTotal = false,
+  extendAfterTotal = false,
+}) {
+  const totalRowCellStyle = baseTotalRowCellStyle;
+
   return (
     <div className="items-table-wrap">
       <table className="items-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
@@ -64,20 +72,35 @@ export default function ItemsTable({ lineItems, totalqty, fillerCount = 0, suppr
             </tr>
           )}
           {/* Filler rows */}
-          {suppressTotal && Array.from({ length: fillerCount }).map((_, i) => (
-            <tr key={`filler-${i}`} className="items-row" style={{ visibility: 'hidden' }}>
-              <td className="items-cell" style={{ border: borderStyle, borderBottom: 'none', borderTop: 'none' }}>&nbsp;</td>
-              <td className="items-cell" style={{ border: borderStyle, borderBottom: 'none', borderTop: 'none' }}>&nbsp;</td>
-              <td className="items-cell items-description" style={{ border: borderStyle, borderBottom: 'none', borderTop: 'none' }}>
-                <div className="items-text-clip">PLACEHOLDER</div>
-              </td>
-              <td className="items-cell" style={{ border: borderStyle, borderBottom: 'none', borderTop: 'none' }}>&nbsp;</td>
-              <td className="items-cell" style={{ border: borderStyle, borderBottom: 'none', borderTop: 'none' }}>&nbsp;</td>
-              <td className="items-cell" style={{ border: borderStyle, borderBottom: 'none', borderTop: 'none' }}>&nbsp;</td>
-              <td className="items-cell" style={{ border: borderStyle, borderBottom: 'none', borderTop: 'none' }}>&nbsp;</td>
-              <td className="items-cell" style={{ border: borderStyle, borderBottom: 'none', borderTop: 'none' }}>&nbsp;</td>
-            </tr>
-          ))}
+          {suppressTotal &&
+            Array.from({ length: fillerCount }).map((_, i) => {
+              const isLastFillerRow = i === fillerCount - 1;
+              const fillerCellStyle = {
+                borderLeft: borderStyle,
+                borderRight: borderStyle,
+                borderTop: 'none',
+                borderBottom: isLastFillerRow ? borderStyle : 'none',
+              };
+
+              return (
+                <tr
+                  key={`filler-${i}`}
+                  className="items-row"
+                  style={suppressTotal ? { visibility: 'hidden' } : undefined}
+                >
+                  <td className="items-cell" style={fillerCellStyle}>&nbsp;</td>
+                  <td className="items-cell" style={fillerCellStyle}>&nbsp;</td>
+                  <td className="items-cell items-description" style={fillerCellStyle}>
+                    <div className="items-text-clip">&nbsp;</div>
+                  </td>
+                  <td className="items-cell" style={fillerCellStyle}>&nbsp;</td>
+                  <td className="items-cell" style={fillerCellStyle}>&nbsp;</td>
+                  <td className="items-cell" style={fillerCellStyle}>&nbsp;</td>
+                  <td className="items-cell" style={fillerCellStyle}>&nbsp;</td>
+                  <td className="items-cell" style={fillerCellStyle}>&nbsp;</td>
+                </tr>
+              );
+            })}
         </tbody>
       </table>
     </div>
