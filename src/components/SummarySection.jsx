@@ -39,36 +39,36 @@ export function SummaryTop({ data }) {
               <tbody>
                 <tr>
                   <td style={{ padding: '3px 10px', fontWeight: 'bold' }}>Total</td>
-                  <td style={{ textAlign: 'right', padding: '3px 10px' }}>{subtotal.toFixed(2)}</td>
+                  <td style={{ textAlign: 'right', padding: '3px 10px', fontWeight: 'bold' }}>{subtotal.toFixed(2)}</td>
                 </tr>
                 {discount > 0 && (
                   <tr>
-                    <td style={{ padding: '3px 10px', fontWeight: 'bold' }}>Total Discount @{discount}%</td>
-                    <td style={{ textAlign: 'right', padding: '3px 10px' }}>{totaldisc.toFixed(2)}</td>
+                    <td style={{ padding: '3px 10px', fontWeight: 'bold' }}>Total Discount @{discount.toFixed(2)}%</td>
+                    <td style={{ textAlign: 'right', padding: '3px 10px', fontWeight: 'bold' }}>{totaldisc.toFixed(2)}</td>
                   </tr>
                 )}
                 <tr>
                   <td style={{ padding: '3px 10px', fontWeight: 'bold' }}>Total Taxable Value</td>
-                  <td style={{ textAlign: 'right', padding: '3px 10px' }}>{taxvalue.toFixed(2)}</td>
+                  <td style={{ textAlign: 'right', padding: '3px 10px', fontWeight: 'bold' }}>{taxvalue.toFixed(2)}</td>
                 </tr>
                 <tr>
                   <td style={{ padding: '3px 10px', fontWeight: 'bold' }}>Total Tax Amount</td>
-                  <td style={{ textAlign: 'right', padding: '3px 10px' }}>{totaltax.toFixed(2)}</td>
+                  <td style={{ textAlign: 'right', padding: '3px 10px', fontWeight: 'bold' }}>{totaltax.toFixed(2)}</td>
                 </tr>
                 <tr>
                   <td style={{ padding: '3px 10px', fontWeight: 'bold' }}>Round Off</td>
-                  <td style={{ textAlign: 'right', padding: '3px 10px' }}>{roundOff.toFixed(2)}</td>
+                  <td style={{ textAlign: 'right', padding: '3px 10px', fontWeight: 'bold' }}>{roundOff.toFixed(2)}</td>
                 </tr>
               </tbody>
             </table>
-            <table style={{ width: '100%', borderCollapse: 'collapse', borderTop: B }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <tbody>
                 <tr>
                   <td style={{ padding: '6px 10px', fontWeight: 'bold', fontSize: '10pt', border: 'none' }}>
                     Bill Amount
                   </td>
                   <td style={{ textAlign: 'right', padding: '6px 10px', fontSize: '14pt', fontWeight: 'bold', border: 'none' }}>
-                    {gross.toFixed(2)}
+                    ₹{gross.toFixed(2)}
                   </td>
                 </tr>
               </tbody>

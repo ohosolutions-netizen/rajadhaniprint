@@ -1,52 +1,37 @@
-// Mock invoice data - mirrors the Zoho Deluge data structure
+// Empty invoice shape used until live data is loaded.
 export const invoiceData = {
   // Customer Info
-  cusName: "ASRA COLLECTIONS",
-  BillingAddress: "PARAMBIL P.O,KOZHIKODE-673012,KOZHIKODE,Kerala,673012",
-  ShippingAddress: "PARAMBIL P.O,KOZHIKODE-673012,KOZHIKODE,Kerala,673012",
-  phone: "+919895589204",
+  cusName: "",
+  BillingAddress: "",
+  ShippingAddress: "",
+  phone: "",
   gstnum: "",
 
   // Invoice Details
-  invoicenum: "RFINV26-27/1908",
-  invdate: "08-May-2026",
-  invtype: "Cash",
-  billtype: "Cash",
-  remark: "APS KOZHIKODE",
-  salesman: "SALES TEAM",
-  billcreate: "Admin User",
+  invoicenum: "",
+  invdate: "",
+  invtype: "",
+  billtype: "",
+  transport: "",
+  agentName: "",
+  remark: "",
+  salesman: "",
+  billcreate: "",
 
   // Financial Summary
-  subtotal: 91440.00,
+  subtotal: 0,
   discount: 0,
   totaldisc: 0,
-  totaltax: 4344.76,
-  gross: 95785.00,
-  roundOff: 0.24,
+  totaltax: 0,
+  gross: 0,
+  roundOff: 0,
 
   // E-Invoice
   irn: "",
   ebill: "",
 
   // Line Items
-  lineItems: [
-    { sl: 1, barcode: "31299", itemName: "LADIES 3PCS BRINDAVAN 361", hsnCode: "62114210", gst: 5, qty: 4.00, rate: 1180.00, amount: 4720.00 },
-    { sl: 2, barcode: "32001", itemName: "3 PIECE SET J&S-1885", hsnCode: "62114210", gst: 5, qty: 5.00, rate: 1050.00, amount: 5250.00 },
-    { sl: 3, barcode: "32096", itemName: "3 PIECE SET RC KIRTI VOL.2", hsnCode: "620444", gst: 5, qty: 4.00, rate: 970.00, amount: 3880.00 },
-    { sl: 4, barcode: "33048", itemName: "CO-ORD SET PC-848", hsnCode: "621142", gst: 5, qty: 10.00, rate: 1198.00, amount: 11980.00 },
-    { sl: 5, barcode: "36132", itemName: "CO-ORD SET RA-C01304 GARARA", hsnCode: "621142", gst: 5, qty: 4.00, rate: 875.00, amount: 3500.00 },
-    { sl: 6, barcode: "32507", itemName: "FLAIR KURTI STC 2451", hsnCode: "621142", gst: 5, qty: 5.00, rate: 598.00, amount: 2990.00 },
-    { sl: 7, barcode: "37833", itemName: "CO-ORD SET BM-GAMTHI AARDHNA", hsnCode: "621142", gst: 5, qty: 5.00, rate: 995.00, amount: 4975.00 },
-    { sl: 8, barcode: "37830", itemName: "CO-ORD SET ARS-1912", hsnCode: "620419", gst: 5, qty: 5.00, rate: 1070.00, amount: 5350.00 },
-    { sl: 9, barcode: "38070", itemName: "LADIES 3 PIECE SET STC 2502", hsnCode: "621142", gst: 5, qty: 4.00, rate: 999.00, amount: 3996.00 },
-    { sl: 10, barcode: "33045", itemName: "3 PIECE SET VK 24ES026", hsnCode: "621142", gst: 5, qty: 5.00, rate: 1245.00, amount: 6225.00 },
-    { sl: 11, barcode: "37519", itemName: "CO-ORD SET BM-LAJAUUB KK APLIC", hsnCode: "621142", gst: 5, qty: 5.00, rate: 999.00, amount: 4995.00 },
-    { sl: 12, barcode: "38048", itemName: "LADIES 3 PIECE SET STC 2501", hsnCode: "621142", gst: 5, qty: 5.00, rate: 1198.00, amount: 5990.00 },
-    { sl: 13, barcode: "33894", itemName: "3 PIECE SET PC-830", hsnCode: "621142", gst: 5, qty: 5.00, rate: 1065.00, amount: 5325.00 },
-    { sl: 14, barcode: "33072", itemName: "3 PIECE SET KNS RICHA 429", hsnCode: "620419", gst: 5, qty: 5.00, rate: 1120.00, amount: 5600.00 },
-    { sl: 15, barcode: "33823", itemName: "3 PIECE SET SSF-1022", hsnCode: "621142", gst: 5, qty: 5.00, rate: 1440.00, amount: 7200.00 },
-    { sl: 16, barcode: "12611", itemName: "LADIES 3PCS SET", hsnCode: "62114210", gst: 5, qty: 4.00, rate: 620.00, amount: 2480.00 },
-  ],
+  lineItems: [],
 };
 
 function pickFirstValue(...values) {
@@ -76,12 +61,38 @@ function getDisplayValue(value) {
   return '';
 }
 
+function getPrimaryName(value) {
+  if (value === undefined || value === null) return '';
+  if (typeof value === 'string' || typeof value === 'number') return String(value);
+  if (Array.isArray(value)) {
+    return value.map(getPrimaryName).filter(Boolean).join(', ');
+  }
+  if (typeof value === 'object') {
+    return String(pickFirstValue(
+      value.Name,
+      value.name,
+      value.zc_display_value,
+      value.display_value,
+      value.value,
+      value.ID,
+    ));
+  }
+  return '';
+}
+
 function extractItemCode(value) {
   const text = getDisplayValue(value).trim();
   if (!text) return '';
 
   const match = text.match(/^([A-Za-z0-9-]+)/);
   return match ? match[1] : text;
+}
+
+function stripLeadingItemCode(value) {
+  const text = getDisplayValue(value).trim();
+  if (!text) return '';
+
+  return text.replace(/^[A-Za-z0-9-]+\s*-\s*/, '').trim();
 }
 
 function getAddressValue(value) {
@@ -137,6 +148,32 @@ function normalizeDate(value) {
   return getDisplayValue(value);
 }
 
+function normalizeFieldKey(key) {
+  return String(key || '').replace(/[^a-z0-9]/gi, '').toLowerCase();
+}
+
+function getRecordValueByAliases(record, aliases) {
+  for (const alias of aliases) {
+    if (record[alias] !== undefined && record[alias] !== null && record[alias] !== '') {
+      return record[alias];
+    }
+  }
+
+  const normalizedAliases = aliases.map(normalizeFieldKey);
+  for (const [key, value] of Object.entries(record)) {
+    if (
+      normalizedAliases.includes(normalizeFieldKey(key)) &&
+      value !== undefined &&
+      value !== null &&
+      value !== ''
+    ) {
+      return value;
+    }
+  }
+
+  return '';
+}
+
 export function mapCreatorRecordToInvoice(record) {
   if (!record || typeof record !== 'object') {
     return invoiceData;
@@ -144,7 +181,12 @@ export function mapCreatorRecordToInvoice(record) {
 
   const rawLineItems = getLineItemsValue(record.Line_Item);
   const mappedLineItems = rawLineItems.map((item, index) => {
-    const quantity = toNumber(item.ORDER_QTY);
+    const quantity = toNumber(pickFirstValue(
+      item.P_QTY,
+      item.ORDER_QTY,
+      item.Quantity,
+      item.Qty,
+    ));
     const rate = toNumber(item.RATE);
     const amount = toNumber(pickFirstValue(item.TOTAL_AMOUNT, item.AMOUNT, quantity * rate));
     const gst = extractPercent(item.Tax);
@@ -152,7 +194,7 @@ export function mapCreatorRecordToInvoice(record) {
     return {
       sl: toNumber(pickFirstValue(item.SL_NO, index + 1)) || index + 1,
       barcode: extractItemCode(item.ITEMCODE),
-      itemName: getDisplayValue(pickFirstValue(item.ITEMNAME, item.ITEMCODE, item.SI_Line_Item)) || `Item ${index + 1}`,
+      itemName: stripLeadingItemCode(pickFirstValue(item.ITEMNAME, item.ITEMCODE, item.SI_Line_Item)) || `Item ${index + 1}`,
       hsnCode: getDisplayValue(item.HSN_CODE),
       gst,
       qty: quantity,
@@ -169,6 +211,7 @@ export function mapCreatorRecordToInvoice(record) {
     mappedLineItems.reduce((sum, item) => sum + item.amount, 0),
   ));
   const discountAmount = toNumber(record.Discount_Amount);
+  const discountValue = toNumber(record.Discount_Value);
   const totalTax = toNumber(pickFirstValue(
     record.Tax,
     mappedLineItems.reduce((sum, item) => sum + (item.taxAmount || 0), 0),
@@ -181,28 +224,42 @@ export function mapCreatorRecordToInvoice(record) {
 
   return {
     ...invoiceData,
-    cusName: getDisplayValue(record.Customer) || invoiceData.cusName,
+    cusName: getPrimaryName(record.Customer),
     BillingAddress: getAddressValue(pickFirstValue(
       record.Customer_Billing_Address,
       record.Billing_Address,
       record.Customer_Shipping_Address,
-    )) || invoiceData.BillingAddress,
+    )),
     ShippingAddress: getAddressValue(pickFirstValue(
       record.Customer_Shipping_Address,
       record.Billing_Address,
       record.Customer_Billing_Address,
-    )) || invoiceData.ShippingAddress,
-    phone: getDisplayValue(pickFirstValue(record.Mobile_Number, record.Whatsapp_Number)) || invoiceData.phone,
+    )),
+    phone: getDisplayValue(pickFirstValue(record.Mobile_Number, record.Whatsapp_Number)),
     gstnum: getDisplayValue(record.GST_Number),
-    invoicenum: getDisplayValue(record.Invoice_No) || invoiceData.invoicenum,
-    invdate: normalizeDate(record.Invoice_Date) || invoiceData.invdate,
-    invtype: getDisplayValue(record.Type_field) || invoiceData.invtype,
-    billtype: getDisplayValue(record.Bill_Type) || invoiceData.billtype,
+    invoicenum: getDisplayValue(record.Invoice_No),
+    invdate: normalizeDate(record.Invoice_Date),
+    invtype: getDisplayValue(record.Type_field),
+    billtype: getDisplayValue(record.Bill_Type),
+    transport: getDisplayValue(getRecordValueByAliases(record, [
+      'TRANSPORT',
+      'Transport',
+      'Transporter',
+      'Transport_Name',
+      'TransportName',
+    ])),
+    agentName: getDisplayValue(getRecordValueByAliases(record, [
+      'AGENT_NAME',
+      'Agent_Name',
+      'AgentName',
+      'Agent',
+      'Agent_Name_Field',
+    ])),
     remark: getDisplayValue(record.Remark),
-    salesman: getDisplayValue(record.Sales_Man) || invoiceData.salesman,
-    billcreate: getDisplayValue(record.Bill_Created_By) || invoiceData.billcreate,
+    salesman: getDisplayValue(record.Sales_Man),
+    billcreate: getDisplayValue(record.Bill_Created_By),
     subtotal,
-    discount: 0,
+    discount: discountValue,
     totaldisc: discountAmount,
     totaltax: totalTax,
     gross: grossAmount,

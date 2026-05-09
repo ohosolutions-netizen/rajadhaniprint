@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import './index.css';
 import Invoice from './components/Invoice';
-import { invoiceData, mapCreatorRecordToInvoice } from './data/invoiceData';
+import { mapCreatorRecordToInvoice } from './data/invoiceData';
 
 const TEST_INVOICE_ID = '316828000003416382';
 const CREATOR_APP_NAME = 'oho-erp';
@@ -20,10 +20,18 @@ const CREATOR_FIELDS = [
   'Invoice_Date',
   'Bill_Type',
   'Type_field',
+  'TRANSPORT',
+  'Transport',
+  'Transporter',
+  'AGENT_NAME',
+  'Agent_Name',
+  'Agent',
+  'AgentName',
   'Remark',
   'Sales_Man',
   'Bill_Created_By',
   'Total',
+  'Discount_Value',
   'Discount_Amount',
   'Tax',
   'Round_Off',
@@ -123,9 +131,10 @@ export default function App() {
   const [sdkMode, setSdkMode] = useState(() =>
     getInvoiceIdFromUrl() ? 'Page URL detected' : 'Detecting host'
   );
-  const [invoiceDetails, setInvoiceDetails] = useState(invoiceData);
-  const [fetchedCustomer, setFetchedCustomer] = useState('null');
-  const [fetchedBilling, setFetchedBilling] = useState('null');
+  const [invoiceDetails, setInvoiceDetails] = useState(null);
+  const [fetchedCustomer, setFetchedCustomer] = useState('');
+  const [fetchedBilling, setFetchedBilling] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const handlePrint = () => window.print();
 
   useEffect(() => {
@@ -144,6 +153,7 @@ export default function App() {
         if (isActive) {
           setInvoiceId(fallbackInvoiceId);
           setSdkMode(targetInvoiceId === TEST_INVOICE_ID ? 'Creator SDK not found, using test ID' : 'Creator SDK not found');
+          setIsLoading(false);
         }
         return;
       }
@@ -180,6 +190,7 @@ export default function App() {
           if (!creatorSdk.DATA?.getRecords) {
             if (isActive) {
               setSdkMode('Creator JS SDK connected, data APIs unavailable');
+              setIsLoading(false);
             }
             return;
           }
@@ -194,6 +205,7 @@ export default function App() {
         if (!fetched?.record) {
           if (isActive) {
             setSdkMode(`No report data returned for ID ${resolvedInvoiceId}`);
+            setIsLoading(false);
           }
           return;
         }
@@ -205,22 +217,24 @@ export default function App() {
             fetched.record.Customer?.display_value ||
             fetched.record.Customer?.zc_display_value ||
             fetched.record.Customer ||
-            'null'
+            ''
           );
           setFetchedBilling(
             fetched.record.Customer_Billing_Address ||
             fetched.record.Billing_Address?.zc_display_value ||
             fetched.record.Billing_Address?.display_value ||
             fetched.record.Billing_Address ||
-            'null'
+            ''
           );
           setSdkMode(`Loaded live invoice from ${CREATOR_REPORT_NAME} via ${fetched.source}`);
+          setIsLoading(false);
         }
       } catch (error) {
         console.error('Unable to read invoice data from Zoho Creator JS SDK.', error);
         if (isActive) {
           setInvoiceId(fallbackInvoiceId);
           setSdkMode(`Creator read failed (${error?.message || 'unknown error'})`);
+          setIsLoading(false);
         }
       }
     }
@@ -237,18 +251,34 @@ export default function App() {
       <div className="toolbar no-print">
         <div>
           <h1>Rajdhani Fashions</h1>
-          <span>Tax Invoice Preview — {invoiceDetails.invoicenum}</span>
-          <span>URL ID: {invoiceId || 'null'}</span>
+          <span>Tax Invoice Preview{invoiceDetails?.invoicenum ? ` — ${invoiceDetails.invoicenum}` : ''}</span>
+          <span>URL ID: {invoiceId || 'Not detected yet'}</span>
           <span>Fetch ID: {invoiceId || TEST_INVOICE_ID}</span>
-          <span>Fetched Customer: {fetchedCustomer || 'null'}</span>
-          <span>Fetched Billing: {fetchedBilling || 'null'}</span>
+          {fetchedCustomer ? <span>Fetched Customer: {fetchedCustomer}</span> : null}
+          {fetchedBilling ? <span>Fetched Billing: {fetchedBilling}</span> : null}
           <span>{sdkMode}</span>
         </div>
         <button className="print-btn" onClick={handlePrint}>🖨 Print / Save PDF</button>
       </div>
 
       {/* Invoice Pages */}
-      <Invoice data={invoiceDetails} invoiceId={invoiceId || TEST_INVOICE_ID} />
+      {isLoading ? (
+        <div className="loading-state">
+          <div className="loading-state-card">
+            <h2>Loading invoice...</h2>
+            <p>Please wait while the latest data is fetched from Zoho Creator.</p>
+          </div>
+        </div>
+      ) : invoiceDetails ? (
+        <Invoice data={invoiceDetails} invoiceId={invoiceId || TEST_INVOICE_ID} />
+      ) : (
+        <div className="loading-state">
+          <div className="loading-state-card">
+            <h2>Invoice data unavailable</h2>
+            <p>{sdkMode}</p>
+          </div>
+        </div>
+      )}
     </>
   );
 }

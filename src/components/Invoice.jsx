@@ -7,13 +7,13 @@ import { buildHsnList, numberToWords } from '../data/invoiceData';
 /**
  * Renders a single invoice page (header + items, optionally + summary).
  */
-function InvoicePage({ data, copyLabel, lineItems, showSummary, hsnList, fillerCount, showFillerOnly, fillerOnlyCount, marginTop, invoiceId }) {
+function InvoicePage({ data, copyLabel, lineItems, showSummary, hsnList, fillerCount, showFillerOnly, fillerOnlyCount, marginTop, invoiceId, suppressTotal = false }) {
   const totalqty = lineItems.reduce((s, i) => s + i.qty, 0);
   return (
     <div className="invoice-page-content" style={{ marginBottom: showSummary ? 0 : undefined }}>
       <InvoiceHeader data={{ ...data, marginTop: marginTop || '0px' }} copyLabel={copyLabel} invoiceId={invoiceId} />
       {!showFillerOnly ? (
-        <ItemsTable lineItems={lineItems} totalqty={totalqty} fillerCount={fillerCount || 0} />
+        <ItemsTable lineItems={lineItems} totalqty={totalqty} fillerCount={fillerCount || 0} suppressTotal={suppressTotal} />
       ) : (
         <div style={{ height: fillerOnlyCount ? `${Math.max(0, fillerOnlyCount) * 17}px` : 0 }} />
       )}
@@ -24,10 +24,18 @@ function InvoicePage({ data, copyLabel, lineItems, showSummary, hsnList, fillerC
   );
 }
 
-function SummaryContinuationPage({ data, hsnList, showTerms }) {
+function SummaryContinuationPage({ data, hsnList, showTerms, copyLabel, invoiceId, marginTop }) {
   return (
     <div className="invoice-page-content summary-page-shell">
-      <div style={{ height: HEADER_TOP_SPACE }} />
+      {showTerms ? (
+        <InvoiceHeader
+          data={{ ...data, marginTop: marginTop || HEADER_TOP_SPACE }}
+          copyLabel={copyLabel}
+          invoiceId={invoiceId}
+        />
+      ) : (
+        <div style={{ height: HEADER_TOP_SPACE }} />
+      )}
       <SummarySection data={data} hsnList={hsnList} showTop={false} showTerms={showTerms} />
     </div>
   );
@@ -49,11 +57,18 @@ const SUMMARY_ONLY_FILL_TARGET = 15;
 const SUMMARY_ONLY_OVERFLOW_FILL = 26;
 const SMALL_COMBINED_FILL_TARGET = 13;
 const LARGE_COMBINED_FILL_TARGET = 14;
-const HEADER_TOP_SPACE = '148px';
+const HEADER_TOP_SPACE = '141px';
+const INLINE_SUMMARY_TOP_MAX_ITEMS = 24;
 const SUMMARY_SINGLE_PAGE_HSN_WITH_TERMS = 18;
 const SUMMARY_FIRST_PAGE_HSN_ROWS = 36;
 const SUMMARY_CONTINUATION_HSN_ROWS = 30;
 const SUMMARY_LAST_PAGE_HSN_ROWS_WITH_TERMS = 0;
+
+function removeTopFromFirstSummarySegment(segments) {
+  return segments.map((segment, index) => (
+    index === 0 ? { ...segment, showTop: false } : segment
+  ));
+}
 
 function buildSummarySegments(hsnList) {
   if (hsnList.length <= SUMMARY_SINGLE_PAGE_HSN_WITH_TERMS) {
@@ -132,6 +147,9 @@ function renderSummarySegmentPage({ copyLabel, summaryData, invoiceId, segment, 
           data={summaryData}
           hsnList={segment.hsnList}
           showTerms={segment.showTerms}
+          copyLabel={copyLabel}
+          invoiceId={invoiceId}
+          marginTop={mt2}
         />
       )}
       {(!isLastCopy || !isLastPage) && <div className="page-break" />}
@@ -242,15 +260,20 @@ export function InvoiceCopy({ data, copyLabel, isLastCopy, invoiceId }) {
 
   /* ─── Branch B: items on page 1, summary+HSN on page 2 ─── */
   if (lines <= 16 && (totaline > 18 || hsnsize > COMBINED_HSN_LIMIT)) {
-    // Page 1: full item list + 28 filler rows
-    const page1Filler = 28;
-    const summarySegments = buildSummarySegments(hsnList);
+    const inlineSummaryTop = lines <= INLINE_SUMMARY_TOP_MAX_ITEMS;
+    const page1Filler = inlineSummaryTop ? 0 : 28;
+    const summarySegments = inlineSummaryTop
+      ? removeTopFromFirstSummarySegment(buildSummarySegments(hsnList))
+      : buildSummarySegments(hsnList);
     return (
       <>
         <div className="a4-page">
           <div className="invoice-page-content">
             <InvoiceHeader data={{ ...summaryData, marginTop: mt1 }} copyLabel={copyLabel} invoiceId={invoiceId} />
-            <ItemsTable lineItems={lineItems} totalqty={totalqty} fillerCount={page1Filler} />
+            <ItemsTable lineItems={lineItems} totalqty={totalqty} fillerCount={page1Filler} suppressTotal={inlineSummaryTop ? false : true} />
+            {inlineSummaryTop && (
+              <SummarySection data={summaryData} hsnList={[]} showTop showTerms={false} />
+            )}
           </div>
           {!isLastCopy && <div className="page-break" />}
         </div>
@@ -273,14 +296,20 @@ export function InvoiceCopy({ data, copyLabel, isLastCopy, invoiceId }) {
 
   /* ─── Branch C: >16 items, fits in 2 pages each ─── */
   if (lines > 16 && lines <= 44) {
-    const page1Filler = lines < 44 ? 44 - lines : 0;
-    const summarySegments = buildSummarySegments(hsnList);
+    const inlineSummaryTop = lines <= INLINE_SUMMARY_TOP_MAX_ITEMS;
+    const page1Filler = inlineSummaryTop ? 0 : (lines < 44 ? 44 - lines : 0);
+    const summarySegments = inlineSummaryTop
+      ? removeTopFromFirstSummarySegment(buildSummarySegments(hsnList))
+      : buildSummarySegments(hsnList);
     return (
       <>
         <div className="a4-page">
           <div className="invoice-page-content">
             <InvoiceHeader data={{ ...summaryData, marginTop: mt1 }} copyLabel={copyLabel} invoiceId={invoiceId} />
-            <ItemsTable lineItems={lineItems} totalqty={totalqty} fillerCount={page1Filler} />
+            <ItemsTable lineItems={lineItems} totalqty={totalqty} fillerCount={page1Filler} suppressTotal={inlineSummaryTop ? false : true} />
+            {inlineSummaryTop && (
+              <SummarySection data={summaryData} hsnList={[]} showTop showTerms={false} />
+            )}
           </div>
           <div className="page-break" />
         </div>
@@ -309,14 +338,24 @@ export function InvoiceCopy({ data, copyLabel, isLastCopy, invoiceId }) {
   ─── */
   if (lines > 46) {
     const plan = buildLongInvoicePlan(lines, hsnsize, lineItems);
+    const lastItemPageIndex = Math.max(...plan.map((page, index) => (
+      page.type === 'summary-only' ? -1 : index
+    )));
+    const lastItemPage = plan[lastItemPageIndex];
+    const inlineSummaryTop =
+      lastItemPage?.type === 'items' &&
+      plan[lastItemPageIndex + 1]?.type === 'summary-only' &&
+      lastItemPage.lineItems.length <= INLINE_SUMMARY_TOP_MAX_ITEMS;
+    const adjustedSummarySegments = inlineSummaryTop
+      ? removeTopFromFirstSummarySegment(buildSummarySegments(hsnList))
+      : buildSummarySegments(hsnList);
 
     return (
       <>
         {plan.map((page, pageIndex) => {
           if (page.type === 'summary-only') {
-            const summarySegments = buildSummarySegments(hsnList);
-            return summarySegments.map((segment, index) => {
-              const isLastSegment = pageIndex === plan.length - 1 && index === summarySegments.length - 1;
+            return adjustedSummarySegments.map((segment, index) => {
+              const isLastSegment = pageIndex === plan.length - 1 && index === adjustedSummarySegments.length - 1;
               return renderSummarySegmentPage({
                 copyLabel,
                 summaryData,
@@ -342,9 +381,12 @@ export function InvoiceCopy({ data, copyLabel, isLastCopy, invoiceId }) {
                 <ItemsTable
                   lineItems={page.lineItems}
                   totalqty={totalqty}
-                  fillerCount={page.fillerCount}
-                  suppressTotal={false}
+                  fillerCount={inlineSummaryTop && pageIndex === lastItemPageIndex ? 0 : page.fillerCount}
+                  suppressTotal={pageIndex !== lastItemPageIndex}
                 />
+                {inlineSummaryTop && pageIndex === lastItemPageIndex && (
+                  <SummarySection data={summaryData} hsnList={[]} showTop showTerms={false} />
+                )}
                 {page.type === 'combined' && (
                   <SummarySection data={summaryData} hsnList={hsnList} />
                 )}
@@ -378,13 +420,14 @@ export default function Invoice({ data, invoiceId }) {
   return (
     <div className="invoice-document">
       {copies.map((copy, i) => (
-        <InvoiceCopy
-          key={copy.label}
-          data={data}
-          copyLabel={copy.label}
-          invoiceId={invoiceId}
-          isLastCopy={i === copies.length - 1}
-        />
+        <div className="invoice-copy-set" key={copy.label}>
+          <InvoiceCopy
+            data={data}
+            copyLabel={copy.label}
+            invoiceId={invoiceId}
+            isLastCopy={i === copies.length - 1}
+          />
+        </div>
       ))}
     </div>
   );
