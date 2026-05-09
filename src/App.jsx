@@ -1,0 +1,254 @@
+import React, { useEffect, useState } from 'react';
+import './index.css';
+import Invoice from './components/Invoice';
+import { invoiceData, mapCreatorRecordToInvoice } from './data/invoiceData';
+
+const TEST_INVOICE_ID = '316828000003416382';
+const CREATOR_APP_NAME = 'oho-erp';
+const CREATOR_REPORT_NAME = 'API_Report_Sales';
+const CREATOR_FIELDS = [
+  'Customer',
+  'Warehouse',
+  'Sales_Order',
+  'Customer_Billing_Address',
+  'Customer_Shipping_Address',
+  'Billing_Address',
+  'GST_Number',
+  'Mobile_Number',
+  'Whatsapp_Number',
+  'Invoice_No',
+  'Invoice_Date',
+  'Bill_Type',
+  'Type_field',
+  'Remark',
+  'Sales_Man',
+  'Bill_Created_By',
+  'Total',
+  'Discount_Amount',
+  'Tax',
+  'Round_Off',
+  'Bill_Amount',
+  'E_invoice_ID',
+  'eInvoice_Status',
+  'Line_Item',
+].join(',');
+const SDK_WAIT_MS = 8000;
+const SDK_POLL_MS = 250;
+
+function getInvoiceIdFromUrl() {
+  const hrefMatch = window.location.href.match(/[?#&]invoiceid=([^&#]+)/i);
+  if (hrefMatch?.[1]) {
+    return decodeURIComponent(hrefMatch[1]);
+  }
+
+  const searchParams = new URLSearchParams(window.location.search);
+  const directInvoiceId = searchParams.get('invoiceid');
+  if (directInvoiceId) return directInvoiceId;
+
+  const hash = window.location.hash || '';
+  const queryStart = hash.indexOf('?');
+  if (queryStart === -1) return '';
+
+  const hashParams = new URLSearchParams(hash.slice(queryStart + 1));
+  return hashParams.get('invoiceid') || '';
+}
+
+async function waitForCreatorSdk(timeoutMs = SDK_WAIT_MS) {
+  const start = Date.now();
+
+  while (Date.now() - start < timeoutMs) {
+    const creatorSdk = window.ZOHO?.CREATOR;
+    if (creatorSdk) {
+      return creatorSdk;
+    }
+    await new Promise((resolve) => window.setTimeout(resolve, SDK_POLL_MS));
+  }
+
+  return null;
+}
+
+async function fetchInvoiceFromReport(creatorSdk, invoiceId) {
+  const baseConfig = {
+    app_name: CREATOR_APP_NAME,
+    report_name: CREATOR_REPORT_NAME,
+    field_config: 'custom',
+    fields: CREATOR_FIELDS,
+  };
+
+  if (creatorSdk.DATA?.getRecords) {
+    const criteriaVariants = [
+      `(ID == "${invoiceId}")`,
+      `(ID = "${invoiceId}")`,
+    ];
+
+    for (const criteria of criteriaVariants) {
+      try {
+        const response = await creatorSdk.DATA.getRecords({
+          ...baseConfig,
+          criteria,
+          max_records: 200,
+        });
+
+        if (response?.code === 3000 && Array.isArray(response.data) && response.data.length > 0) {
+          return {
+            source: `report criteria ${criteria}`,
+            record: response.data[0],
+          };
+        }
+      } catch (error) {
+        console.warn(`Report fetch failed for criteria ${criteria}`, error);
+      }
+    }
+  }
+
+  if (creatorSdk.DATA?.getRecordById) {
+    const response = await creatorSdk.DATA.getRecordById({
+      ...baseConfig,
+      id: invoiceId,
+    });
+
+    if (response?.code === 3000 && response.data) {
+      return {
+        source: 'getRecordById fallback',
+        record: response.data,
+      };
+    }
+  }
+
+  return null;
+}
+
+export default function App() {
+  const [invoiceId, setInvoiceId] = useState(() => getInvoiceIdFromUrl());
+  const [sdkMode, setSdkMode] = useState(() =>
+    getInvoiceIdFromUrl() ? 'Page URL detected' : 'Detecting host'
+  );
+  const [invoiceDetails, setInvoiceDetails] = useState(invoiceData);
+  const [fetchedCustomer, setFetchedCustomer] = useState('null');
+  const [fetchedBilling, setFetchedBilling] = useState('null');
+  const handlePrint = () => window.print();
+
+  useEffect(() => {
+    let isActive = true;
+
+    async function loadInvoiceContext() {
+      const fallbackInvoiceId = getInvoiceIdFromUrl();
+      const targetInvoiceId = fallbackInvoiceId || TEST_INVOICE_ID;
+      if (isActive) {
+        setSdkMode('Waiting for Creator SDK');
+      }
+
+      const creatorSdk = await waitForCreatorSdk();
+
+      if (!creatorSdk) {
+        if (isActive) {
+          setInvoiceId(fallbackInvoiceId);
+          setSdkMode(targetInvoiceId === TEST_INVOICE_ID ? 'Creator SDK not found, using test ID' : 'Creator SDK not found');
+        }
+        return;
+      }
+
+      try {
+        if (typeof creatorSdk.init === 'function') {
+          if (isActive) {
+            setSdkMode('Initializing Creator SDK');
+          }
+          await creatorSdk.init();
+        }
+
+        let queryParams = {};
+        if (creatorSdk.UTIL?.getQueryParams) {
+          if (isActive) {
+            setSdkMode('Reading page parameters');
+          }
+          queryParams = await creatorSdk.UTIL.getQueryParams();
+        }
+
+        const creatorInvoiceId =
+          queryParams?.invoiceid ||
+          queryParams?.InvoiceID ||
+          queryParams?.invoiceId ||
+          '';
+        const resolvedInvoiceId = creatorInvoiceId || fallbackInvoiceId || TEST_INVOICE_ID;
+
+        if (isActive) {
+          setInvoiceId(creatorInvoiceId || fallbackInvoiceId);
+          setSdkMode(creatorInvoiceId ? 'Zoho Creator JS SDK connected' : 'Using test ID fallback');
+        }
+
+        if (!creatorSdk.DATA?.getRecordById) {
+          if (!creatorSdk.DATA?.getRecords) {
+            if (isActive) {
+              setSdkMode('Creator JS SDK connected, data APIs unavailable');
+            }
+            return;
+          }
+        }
+
+        if (isActive) {
+          setSdkMode(`Fetching invoice ${resolvedInvoiceId} from report`);
+        }
+
+        const fetched = await fetchInvoiceFromReport(creatorSdk, resolvedInvoiceId);
+
+        if (!fetched?.record) {
+          if (isActive) {
+            setSdkMode(`No report data returned for ID ${resolvedInvoiceId}`);
+          }
+          return;
+        }
+
+        if (isActive) {
+          const mappedInvoice = mapCreatorRecordToInvoice(fetched.record);
+          setInvoiceDetails(mappedInvoice);
+          setFetchedCustomer(
+            fetched.record.Customer?.display_value ||
+            fetched.record.Customer?.zc_display_value ||
+            fetched.record.Customer ||
+            'null'
+          );
+          setFetchedBilling(
+            fetched.record.Customer_Billing_Address ||
+            fetched.record.Billing_Address?.zc_display_value ||
+            fetched.record.Billing_Address?.display_value ||
+            fetched.record.Billing_Address ||
+            'null'
+          );
+          setSdkMode(`Loaded live invoice from ${CREATOR_REPORT_NAME} via ${fetched.source}`);
+        }
+      } catch (error) {
+        console.error('Unable to read invoice data from Zoho Creator JS SDK.', error);
+        if (isActive) {
+          setInvoiceId(fallbackInvoiceId);
+          setSdkMode(`Creator read failed (${error?.message || 'unknown error'})`);
+        }
+      }
+    }
+
+    loadInvoiceContext();
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  return (
+    <>
+      {/* Toolbar – hidden when printing */}
+      <div className="toolbar no-print">
+        <div>
+          <h1>Rajdhani Fashions</h1>
+          <span>Tax Invoice Preview — {invoiceDetails.invoicenum}</span>
+          <span>URL ID: {invoiceId || 'null'}</span>
+          <span>Fetch ID: {invoiceId || TEST_INVOICE_ID}</span>
+          <span>Fetched Customer: {fetchedCustomer || 'null'}</span>
+          <span>Fetched Billing: {fetchedBilling || 'null'}</span>
+          <span>{sdkMode}</span>
+        </div>
+        <button className="print-btn" onClick={handlePrint}>🖨 Print / Save PDF</button>
+      </div>
+
+      {/* Invoice Pages */}
+      <Invoice data={invoiceDetails} invoiceId={invoiceId || TEST_INVOICE_ID} />
+    </>
+  );
+}

@@ -1,0 +1,225 @@
+/* =====================================================
+   RAJDHANI FASHIONS TAX INVOICE – Global Styles
+   Matches the original Zoho Deluge template exactly
+   ===================================================== */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+  font-weight: bold;
+  font-size: 10pt;
+  background: #e8e8e8;
+}
+
+/* ── Print layout ── */
+@page {
+  size: A4;
+  margin: 0;
+}
+
+/* Screen: show pages as cards */
+.a4-page {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 20px auto;
+  padding: 0;
+  background: #fff;
+  box-shadow: 0 4px 24px rgba(0,0,0,.18);
+  font-size: 8pt;
+  font-weight: bold;
+  position: relative;
+  overflow: visible;
+}
+
+.invoice-page-content {
+  padding: 4px 18px 8px;
+}
+
+@media print {
+  body { background: #fff; }
+  .a4-page {
+    height: 297mm;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+    page-break-after: always;
+    break-after: page;
+    overflow: hidden;
+  }
+  .a4-page:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+  .invoice-page-content {
+    padding: 4px 18px 40px;
+  }
+  .items-table-wrap {
+    padding-bottom: 16px;
+  }
+  .page-break {
+    display: none !important;
+  }
+  .no-print { display: none !important; }
+  html, body {
+    width: 210mm;
+  }
+}
+
+/* ── Global table reset ── */
+table {
+  border-collapse: collapse;
+  margin-bottom: 0;
+}
+td, th {
+  padding: 4px 6px;
+  vertical-align: top;
+}
+
+.numeric { text-align: right !important; }
+
+/* ── Details / header table ── */
+.details-table {
+  table-layout: fixed;
+}
+.details-table td {
+  border: none;
+  font-size: 9pt;
+  padding: 4px 8px;
+}
+
+/* ── Items table ── */
+.items-table th {
+  background-color: #eee;
+  text-align: center;
+  font-weight: bold;
+  padding: 3px 4px;
+  font-size: 9pt;
+  border: 1px solid black;
+}
+.items-table td {
+  padding: 2px 4px;
+  font-size: 9pt;
+}
+.items-table-wrap {
+  padding-bottom: 0;
+}
+.items-row {
+  height: 17px;
+}
+.items-cell {
+  height: 17px;
+  line-height: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+  vertical-align: middle;
+}
+.items-description,
+.items-barcode {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+}
+
+/* ── Summary block ── */
+.summary-table td { border: 1px solid #000; }
+.amount-in-words {
+  font-size: 10pt;
+  padding-bottom: 5px;
+  border-bottom: 1px solid #ccc;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+.bank-details { font-size: 9pt; line-height: 1.4; }
+.summary-section-root {
+  break-inside: avoid-page;
+  page-break-inside: avoid;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+.summary-terms-anchor {
+  margin-top: auto;
+}
+
+/* ── HSN table ── */
+.hsn-table th, .hsn-table td { border: 1px solid black; }
+
+/* ── Terms ── */
+.terms table td { border: none; font-size: 9pt; padding: 6px 10px; }
+.terms p { margin: 2px 0; line-height: 1.5; }
+
+/* ── Page break ── */
+.page-break { page-break-after: always; height: 0; }
+
+.summary-page-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.summary-page-shell .summary-section-root {
+  flex: 1;
+}
+
+/* ── Toolbar (screen-only) ── */
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 999;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  color: #fff;
+  padding: 14px 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 2px 20px rgba(0,0,0,.4);
+  font-family: Arial, sans-serif;
+}
+.toolbar h1 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #fff;
+}
+.toolbar span {
+  font-size: 12px;
+  opacity: .7;
+  font-weight: 400;
+  display: block;
+  margin-top: 2px;
+}
+.print-btn {
+  background: linear-gradient(135deg, #e94560 0%, #c72c3e 100%);
+  color: #fff;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: opacity .2s, transform .15s;
+  box-shadow: 0 4px 12px rgba(233,69,96,.4);
+}
+.print-btn:hover { opacity: 0.88; transform: translateY(-1px); }
+.print-btn:active { transform: translateY(0); }
+
+.copy-badge {
+  display: inline-block;
+  background: rgba(255,255,255,.12);
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 20px;
+  padding: 3px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  color: #f0c040;
+  margin-bottom: 4px;
+}
