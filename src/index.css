@@ -23,6 +23,10 @@ body {
 }
 
 /* Screen: show pages as cards */
+.invoice-document {
+  counter-reset: invoice-page;
+}
+
 .a4-page {
   width: 210mm;
   min-height: 297mm;
@@ -34,6 +38,34 @@ body {
   font-weight: bold;
   position: relative;
   overflow: visible;
+}
+
+.a4-page::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 20px;
+  background: #fff;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.a4-page::after {
+  counter-increment: invoice-page;
+  content: "Page " counter(invoice-page);
+  position: absolute;
+  right: 10px;
+  bottom: 6px;
+  font-size: 6.5pt;
+  font-weight: bold;
+  color: #444;
+  line-height: 1;
+  pointer-events: none;
+  background: #fff;
+  padding: 1px 3px;
+  z-index: 2;
 }
 
 .invoice-page-content {
@@ -55,11 +87,43 @@ body {
     page-break-after: auto;
     break-after: auto;
   }
+  .a4-page::after {
+    right: 8px;
+    bottom: 10px;
+    font-size: 6pt;
+    color: #000;
+    background: #fff;
+    padding: 1px 3px;
+  }
+  .a4-page::before {
+    height: 26px;
+  }
   .invoice-page-content {
-    padding: 4px 18px 40px;
+    padding: 4px 18px 95px;
   }
   .items-table-wrap {
-    padding-bottom: 16px;
+    padding-bottom: 48px;
+  }
+  .items-table th {
+    padding: 2px 3px;
+    font-size: 8.5pt;
+    line-height: 1.05;
+  }
+  .items-table td {
+    padding: 1px 3px;
+    font-size: 8.5pt;
+  }
+  .items-row {
+    height: 15px;
+  }
+  .items-cell {
+    height: 15px;
+    line-height: 11px;
+  }
+  .items-table tbody tr:last-child td,
+  .items-table tbody tr:last-child .items-cell {
+    border-bottom: none !important;
+    box-shadow: inset 0 -1px 0 #000;
   }
   .page-break {
     display: none !important;
@@ -103,6 +167,10 @@ td, th {
 }
 
 /* ── Items table ── */
+.items-table {
+  outline: 1px solid #000;
+  outline-offset: -1px;
+}
 .items-table th {
   background-color: #eee;
   text-align: center;
@@ -116,7 +184,8 @@ td, th {
   font-size: 9pt;
 }
 .items-table-wrap {
-  padding-bottom: 0;
+  position: relative;
+  padding-bottom: 18px;
 }
 .items-row {
   height: 17px;
@@ -141,6 +210,9 @@ td, th {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: clip;
+}
+.items-total-cell {
+  box-shadow: inset 0 -1px 0 #000;
 }
 
 /* ── Summary block ── */

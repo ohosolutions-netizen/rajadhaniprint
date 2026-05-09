@@ -1,6 +1,12 @@
 import React from 'react';
 
 const borderStyle = '1px solid black';
+const totalRowCellStyle = {
+  borderLeft: borderStyle,
+  borderRight: borderStyle,
+  borderTop: 'none',
+  borderBottom: 'none',
+};
 
 export default function ItemsTable({ lineItems, totalqty, fillerCount = 0, suppressTotal = false }) {
   return (
@@ -19,22 +25,31 @@ export default function ItemsTable({ lineItems, totalqty, fillerCount = 0, suppr
           </tr>
         </thead>
         <tbody>
-          {lineItems.map((item, idx) => (
+          {lineItems.map((item, idx) => {
+            const isLastDataRow = idx === lineItems.length - 1;
+            const itemCellBorderStyle = {
+              borderLeft: borderStyle,
+              borderRight: borderStyle,
+              borderTop: 'none',
+              borderBottom: isLastDataRow ? borderStyle : 'none',
+            };
+
+            return (
             <tr key={idx} className="items-row">
-              <td className="items-cell" style={{ border: borderStyle, borderBottom: 'none', borderTop: 'none' }}>{item.sl}</td>
-              <td className="items-cell items-barcode" style={{ fontWeight: 'bold', border: borderStyle, borderBottom: 'none', borderTop: 'none' }}>
+              <td className="items-cell" style={itemCellBorderStyle}>{item.sl}</td>
+              <td className="items-cell items-barcode" style={{ ...itemCellBorderStyle, fontWeight: 'bold' }}>
                 <div className="items-text-clip">{item.barcode}</div>
               </td>
-              <td className="items-cell items-description" style={{ border: borderStyle, borderBottom: 'none', borderTop: 'none' }}>
+              <td className="items-cell items-description" style={itemCellBorderStyle}>
                 <div className="items-text-clip">{item.itemName}</div>
               </td>
-              <td className="items-cell" style={{ border: borderStyle, borderBottom: 'none', borderTop: 'none' }}>{item.hsnCode}</td>
-              <td className="items-cell" style={{ border: borderStyle, borderBottom: 'none', borderTop: 'none', textAlign: 'right' }}>{item.gst}</td>
-              <td className="items-cell" style={{ border: borderStyle, borderBottom: 'none', borderTop: 'none', textAlign: 'right' }}>{item.qty.toFixed(2)}</td>
-              <td className="items-cell" style={{ border: borderStyle, borderBottom: 'none', borderTop: 'none', textAlign: 'right' }}>{item.rate.toFixed(2)}</td>
-              <td className="items-cell" style={{ border: borderStyle, borderBottom: 'none', borderTop: 'none', textAlign: 'right' }}>{item.amount.toFixed(2)}</td>
+              <td className="items-cell" style={itemCellBorderStyle}>{item.hsnCode}</td>
+              <td className="items-cell" style={{ ...itemCellBorderStyle, textAlign: 'right' }}>{item.gst}</td>
+              <td className="items-cell" style={{ ...itemCellBorderStyle, textAlign: 'right' }}>{item.qty.toFixed(2)}</td>
+              <td className="items-cell" style={{ ...itemCellBorderStyle, textAlign: 'right' }}>{item.rate.toFixed(2)}</td>
+              <td className="items-cell" style={{ ...itemCellBorderStyle, textAlign: 'right' }}>{item.amount.toFixed(2)}</td>
             </tr>
-          ))}
+          )})}
           {/* Filler rows */}
           {Array.from({ length: fillerCount }).map((_, i) => (
             <tr key={`filler-${i}`} className="items-row" style={{ visibility: 'hidden' }}>
@@ -52,15 +67,15 @@ export default function ItemsTable({ lineItems, totalqty, fillerCount = 0, suppr
           ))}
           {/* Total row */}
           {!suppressTotal && (
-            <tr>
-              <td style={{ border: borderStyle }}></td>
-              <td style={{ border: borderStyle }}>Total</td>
-              <td style={{ border: borderStyle }}></td>
-              <td style={{ border: borderStyle }}></td>
-              <td style={{ border: borderStyle }}></td>
-              <td style={{ border: borderStyle, textAlign: 'right' }}>{totalqty}</td>
-              <td style={{ border: borderStyle }}></td>
-              <td style={{ border: borderStyle }}></td>
+            <tr className="items-total-row">
+              <td className="items-total-cell" style={totalRowCellStyle}></td>
+              <td className="items-total-cell" style={totalRowCellStyle}>Total</td>
+              <td className="items-total-cell" style={totalRowCellStyle}></td>
+              <td className="items-total-cell" style={totalRowCellStyle}></td>
+              <td className="items-total-cell" style={totalRowCellStyle}></td>
+              <td className="items-total-cell" style={{ ...totalRowCellStyle, textAlign: 'right' }}>{totalqty}</td>
+              <td className="items-total-cell" style={totalRowCellStyle}></td>
+              <td className="items-total-cell" style={totalRowCellStyle}></td>
             </tr>
           )}
         </tbody>

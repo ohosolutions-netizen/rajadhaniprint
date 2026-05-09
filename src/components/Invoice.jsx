@@ -41,7 +41,7 @@ function chunkLineItems(lineItems, chunkSize) {
   return chunks;
 }
 
-const ITEM_ONLY_PAGE_SIZE = 45;
+const ITEM_ONLY_PAGE_SIZE = 44;
 const COMBINED_LAST_PAGE_SIZE = 15;
 const COMBINED_HSN_LIMIT = 4;
 const ITEM_ONLY_FILL_TARGET = 43;
@@ -272,7 +272,7 @@ export function InvoiceCopy({ data, copyLabel, isLastCopy, invoiceId }) {
   }
 
   /* ─── Branch C: >16 items, fits in 2 pages each ─── */
-  if (lines > 16 && lines <= 46) {
+  if (lines > 16 && lines <= 44) {
     const page1Filler = lines < 44 ? 44 - lines : 0;
     const summarySegments = buildSummarySegments(hsnList);
     return (
@@ -376,7 +376,7 @@ export default function Invoice({ data, invoiceId }) {
     { label: 'Transport Copy' },
   ];
   return (
-    <>
+    <div className="invoice-document">
       {copies.map((copy, i) => (
         <InvoiceCopy
           key={copy.label}
@@ -386,6 +386,6 @@ export default function Invoice({ data, invoiceId }) {
           isLastCopy={i === copies.length - 1}
         />
       ))}
-    </>
+    </div>
   );
 }
