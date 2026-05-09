@@ -412,12 +412,16 @@ export function InvoiceCopy({ data, copyLabel, isLastCopy, invoiceId }) {
   );
 }
 
-export default function Invoice({ data, invoiceId }) {
-  const copies = [
+export default function Invoice({ data, invoiceId, copyFilter = 'all' }) {
+  const allCopies = [
     { label: 'Customer Copy' },
     { label: 'Office Copy' },
     { label: 'Transport Copy' },
   ];
+  const copies = copyFilter === 'all'
+    ? allCopies
+    : allCopies.filter((copy) => copy.label === copyFilter);
+
   return (
     <div className="invoice-document">
       {copies.map((copy, i) => (

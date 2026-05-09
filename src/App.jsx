@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './index.css';
 import Invoice from './components/Invoice';
 import { mapCreatorRecordToInvoice } from './data/invoiceData';
@@ -6,6 +6,8 @@ import { mapCreatorRecordToInvoice } from './data/invoiceData';
 const TEST_INVOICE_ID = '316828000003416382';
 const CREATOR_APP_NAME = 'oho-erp';
 const CREATOR_REPORT_NAME = 'API_Report_Sales';
+const BOOKS_RESPONSE_PUBLIC_KEY = 'NS3vabBzVNC1G56uBReYEAwyQ';
+const BOOKS_RESPONSE_BASE_URL = `https://www.zohoapis.in/creator/custom/rajadhanifashions/Books_response?publickey=${BOOKS_RESPONSE_PUBLIC_KEY}`;
 const CREATOR_FIELDS = [
   'Customer',
   'Warehouse',
@@ -30,6 +32,7 @@ const CREATOR_FIELDS = [
   'Remark',
   'Sales_Man',
   'Bill_Created_By',
+  'Integration_ID',
   'Total',
   'Discount_Value',
   'Discount_Amount',
@@ -42,6 +45,12 @@ const CREATOR_FIELDS = [
 ].join(',');
 const SDK_WAIT_MS = 8000;
 const SDK_POLL_MS = 250;
+const PRINT_OPTIONS = [
+  { value: 'all', label: 'All Copies' },
+  { value: 'Customer Copy', label: 'Customer Copy' },
+  { value: 'Office Copy', label: 'Office Copy' },
+  { value: 'Transport Copy', label: 'Transport Copy' },
+];
 
 function getInvoiceIdFromUrl() {
   const hrefMatch = window.location.href.match(/[?#&]invoiceid=([^&#]+)/i);
@@ -126,6 +135,97 @@ async function fetchInvoiceFromReport(creatorSdk, invoiceId) {
   return null;
 }
 
+async function fetchBooksResponse(integrationId) {
+  if (!integrationId) return null;
+
+  const response = await window.fetch(
+    `${BOOKS_RESPONSE_BASE_URL}&Rec_ID=${encodeURIComponent(integrationId)}`,
+    {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Books response fetch failed (${response.status})`);
+  }
+
+  const payload = await response.json();
+  if (payload?.code !== 3000 || !payload?.result) {
+    return null;
+  }
+
+  const rawResult = typeof payload.result === 'string'
+    ? payload.result
+    : JSON.stringify(payload.result || {});
+
+  let parsedResult = payload.result;
+  if (typeof parsedResult === 'string') {
+    try {
+      parsedResult = JSON.parse(parsedResult);
+    } catch (error) {
+      console.warn('Unable to parse Books response result payload, falling back to raw extraction.', error);
+      parsedResult = {};
+    }
+  }
+
+  const qrAliases = ['ebill', 'qr_link', 'qrLink', 'qr_url', 'qrUrl', 'qr'];
+  const irnAliases = ['irn', 'inv_ref_num', 'invRefNum', 'einvoiceid', 'eInvoiceID'];
+
+  const pickRawAliasValue = (aliases) => {
+    for (const alias of aliases) {
+      const match = rawResult.match(new RegExp(`"${alias}"\\s*:\\s*"([^"]+)"`, 'i'));
+      if (match?.[1]) return match[1];
+    }
+    return '';
+  };
+
+  const pickObjectAliasValue = (source, aliases) => {
+    if (!source || typeof source !== 'object') return '';
+    for (const alias of aliases) {
+      if (source[alias]) return source[alias];
+      const matchedKey = Object.keys(source).find((key) => key.toLowerCase() === alias.toLowerCase());
+      if (matchedKey && source[matchedKey]) return source[matchedKey];
+    }
+    return '';
+  };
+
+  const cleanedEbill = String(pickObjectAliasValue(parsedResult, qrAliases) || pickRawAliasValue(qrAliases) || '')
+    .trim()
+    .replace(/\\\//g, '/')
+    .replace(/[\\"]+$/g, '');
+  const cleanedIrn = String(pickObjectAliasValue(parsedResult, irnAliases) || pickRawAliasValue(irnAliases) || '')
+    .trim()
+    .replace(/[\\"]+$/g, '');
+
+  return {
+    ebill: cleanedEbill,
+    irn: cleanedIrn,
+  };
+}
+
+async function fetchEbillImageUrl(ebillUrl) {
+  if (!ebillUrl) return '';
+
+  const response = await window.fetch(ebillUrl, {
+    method: 'GET',
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    throw new Error(`E-bill image fetch failed (${response.status})`);
+  }
+
+  const blob = await response.blob();
+  if (!blob || !blob.size) {
+    return '';
+  }
+
+  return window.URL.createObjectURL(blob);
+}
+
 export default function App() {
   const [invoiceId, setInvoiceId] = useState(() => getInvoiceIdFromUrl());
   const [sdkMode, setSdkMode] = useState(() =>
@@ -135,7 +235,27 @@ export default function App() {
   const [fetchedCustomer, setFetchedCustomer] = useState('');
   const [fetchedBilling, setFetchedBilling] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const handlePrint = () => window.print();
+  const [isPrintOptionsOpen, setIsPrintOptionsOpen] = useState(false);
+  const [selectedPrintOption, setSelectedPrintOption] = useState('all');
+  const [activePrintOption, setActivePrintOption] = useState('all');
+  const [isPreparingPrint, setIsPreparingPrint] = useState(false);
+  const ebillObjectUrlRef = useRef('');
+
+  const handlePrint = () => {
+    setSelectedPrintOption('all');
+    setIsPrintOptionsOpen(true);
+  };
+
+  const handlePrintConfirm = () => {
+    setActivePrintOption(selectedPrintOption);
+    setIsPrintOptionsOpen(false);
+    setIsPreparingPrint(true);
+  };
+
+  const handlePrintCancel = () => {
+    setIsPrintOptionsOpen(false);
+    setSelectedPrintOption('all');
+  };
 
   useEffect(() => {
     let isActive = true;
@@ -212,7 +332,39 @@ export default function App() {
 
         if (isActive) {
           const mappedInvoice = mapCreatorRecordToInvoice(fetched.record);
-          setInvoiceDetails(mappedInvoice);
+          let enrichedInvoice = mappedInvoice;
+
+          try {
+            const booksResponse = await fetchBooksResponse(mappedInvoice.integrationId);
+            if (booksResponse?.ebill || booksResponse?.irn) {
+              let resolvedEbill = booksResponse.ebill || mappedInvoice.ebill;
+
+              if (booksResponse.ebill) {
+                try {
+                  const ebillImageUrl = await fetchEbillImageUrl(booksResponse.ebill);
+                  if (ebillImageUrl) {
+                    if (ebillObjectUrlRef.current) {
+                      window.URL.revokeObjectURL(ebillObjectUrlRef.current);
+                    }
+                    ebillObjectUrlRef.current = ebillImageUrl;
+                    resolvedEbill = ebillImageUrl;
+                  }
+                } catch (error) {
+                  console.warn('Unable to fetch e-bill QR image directly.', error);
+                }
+              }
+
+              enrichedInvoice = {
+                ...mappedInvoice,
+                ebill: resolvedEbill,
+                irn: booksResponse.irn || mappedInvoice.irn,
+              };
+            }
+          } catch (error) {
+            console.warn('Unable to fetch Books response for e-invoice details.', error);
+          }
+
+          setInvoiceDetails(enrichedInvoice);
           setFetchedCustomer(
             fetched.record.Customer?.display_value ||
             fetched.record.Customer?.zc_display_value ||
@@ -242,7 +394,32 @@ export default function App() {
     loadInvoiceContext();
     return () => {
       isActive = false;
+      if (ebillObjectUrlRef.current) {
+        window.URL.revokeObjectURL(ebillObjectUrlRef.current);
+        ebillObjectUrlRef.current = '';
+      }
     };
+  }, []);
+
+  useEffect(() => {
+    if (!isPreparingPrint || !invoiceDetails) return undefined;
+
+    const timer = window.setTimeout(() => {
+      window.print();
+    }, 80);
+
+    return () => window.clearTimeout(timer);
+  }, [isPreparingPrint, invoiceDetails, activePrintOption]);
+
+  useEffect(() => {
+    function handleAfterPrint() {
+      setIsPreparingPrint(false);
+      setActivePrintOption('all');
+      setSelectedPrintOption('all');
+    }
+
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => window.removeEventListener('afterprint', handleAfterPrint);
   }, []);
 
   return (
@@ -252,14 +429,36 @@ export default function App() {
         <div>
           <h1>Rajdhani Fashions</h1>
           <span>Tax Invoice Preview{invoiceDetails?.invoicenum ? ` — ${invoiceDetails.invoicenum}` : ''}</span>
-          <span>URL ID: {invoiceId || 'Not detected yet'}</span>
-          <span>Fetch ID: {invoiceId || TEST_INVOICE_ID}</span>
-          {fetchedCustomer ? <span>Fetched Customer: {fetchedCustomer}</span> : null}
-          {fetchedBilling ? <span>Fetched Billing: {fetchedBilling}</span> : null}
-          <span>{sdkMode}</span>
         </div>
         <button className="print-btn" onClick={handlePrint}>🖨 Print / Save PDF</button>
       </div>
+
+      {isPrintOptionsOpen && (
+        <div className="print-options-backdrop no-print">
+          <div className="print-options-modal">
+            <h2>Print Options</h2>
+            <p>Select which copy set should be sent to the print window.</p>
+            <div className="print-options-list">
+              {PRINT_OPTIONS.map((option) => (
+                <label className="print-option-item" key={option.value}>
+                  <input
+                    type="radio"
+                    name="print-copy-option"
+                    value={option.value}
+                    checked={selectedPrintOption === option.value}
+                    onChange={(event) => setSelectedPrintOption(event.target.value)}
+                  />
+                  <span>{option.label}</span>
+                </label>
+              ))}
+            </div>
+            <div className="print-options-actions">
+              <button type="button" className="print-options-secondary" onClick={handlePrintCancel}>Cancel</button>
+              <button type="button" className="print-btn" onClick={handlePrintConfirm}>Continue</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Invoice Pages */}
       {isLoading ? (
@@ -270,7 +469,11 @@ export default function App() {
           </div>
         </div>
       ) : invoiceDetails ? (
-        <Invoice data={invoiceDetails} invoiceId={invoiceId || TEST_INVOICE_ID} />
+        <Invoice
+          data={invoiceDetails}
+          invoiceId={invoiceId || TEST_INVOICE_ID}
+          copyFilter={activePrintOption}
+        />
       ) : (
         <div className="loading-state">
           <div className="loading-state-card">

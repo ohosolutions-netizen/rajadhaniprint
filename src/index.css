@@ -378,7 +378,7 @@ td, th {
   margin-top: 2px;
 }
 .print-btn {
-  background: linear-gradient(135deg, #e94560 0%, #c72c3e 100%);
+  background: linear-gradient(135deg, #2f9e44 0%, #237836 100%);
   color: #fff;
   border: none;
   padding: 10px 24px;
@@ -388,10 +388,81 @@ td, th {
   cursor: pointer;
   letter-spacing: 0.5px;
   transition: opacity .2s, transform .15s;
-  box-shadow: 0 4px 12px rgba(233,69,96,.4);
+  box-shadow: 0 4px 12px rgba(47,158,68,.38);
 }
 .print-btn:hover { opacity: 0.88; transform: translateY(-1px); }
 .print-btn:active { transform: translateY(0); }
+
+.print-options-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 22, 35, 0.42);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 1000;
+}
+
+.print-options-modal {
+  width: min(420px, 100%);
+  background: #fff;
+  border: 1px solid #cfd6df;
+  border-radius: 14px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
+  padding: 22px 22px 18px;
+}
+
+.print-options-modal h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.print-options-modal p {
+  margin: 0 0 16px;
+  color: #4a5568;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.print-options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.print-option-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #dde3eb;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.print-option-item input {
+  margin: 0;
+}
+
+.print-options-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.print-options-secondary {
+  border: 1px solid #c8d1dc;
+  background: #fff;
+  color: #1f2937;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
 
 .copy-badge {
   display: inline-block;

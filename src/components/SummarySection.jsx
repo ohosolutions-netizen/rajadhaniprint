@@ -7,7 +7,6 @@ export function SummaryTop({ data }) {
     gross, grossEng, subtotal, discount, totaldisc, totaltax,
     roundOff, irn, ebill,
   } = data;
-
   const taxvalue = subtotal - totaldisc;
 
   return (
@@ -79,7 +78,11 @@ export function SummaryTop({ data }) {
         <tr>
           <td style={{ border: B, padding: '6px', verticalAlign: 'middle', textAlign: 'center' }}>
             {ebill ? (
-              <img src={ebill} style={{ width: '96px', height: '96px', objectFit: 'contain' }} alt="E-Invoice QR" />
+              <img
+                src={ebill}
+                style={{ width: '96px', height: '96px', objectFit: 'contain' }}
+                alt="E-Invoice QR"
+              />
             ) : (
               <div
                 style={{
