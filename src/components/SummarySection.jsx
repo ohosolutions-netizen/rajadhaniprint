@@ -163,32 +163,31 @@ export function HsnTable({ hsnList }) {
 export function TermsSection({ data }) {
   const { salesman, billcreate, companyLabel = 'For RAJADHANI FASHIONS' } = data;
   return (
-    <div style={{ borderTop: B }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <tbody>
-          <tr>
-            <td style={{ border: 'none', padding: '8px 10px', verticalAlign: 'top', fontSize: '9pt' }}>
-              <div style={{ fontWeight: 'bold', marginBottom: '3px' }}>Terms &amp; Conditions:</div>
-              <div style={{ fontWeight: 'normal', lineHeight: 1.35 }}>
-                1. Price are net<br />
-                2. Goods are dispatched on buyer&apos;s A/c &amp; risk.<br />
-                3. All disputes are subject to Ernakulam jurisdiction only.<br />
-                4. All remittance are to be made in favour of RAJADHANI FASHIONS, Ernakulam<br />
-                5. Payment within 15days. If not paid, interest will be charged at 21% annum<br />
-                6. Goods sold will not taken back.<br />
-                7. Damage goods will be taken back only for colour damages from 2 months pre- invoice only.
-              </div>
-              <div style={{ marginTop: '6px', fontWeight: 'bold' }}>Salesman:{salesman}</div>
-            </td>
-
-            <td style={{ border: 'none', padding: '8px 10px', verticalAlign: 'top', textAlign: 'right', fontSize: '9pt' }}>
-              <div style={{ fontWeight: 'bold', marginBottom: '60px' }}>{companyLabel}</div>
-              <div>Authorized Signatory</div>
-              <div style={{ marginTop: '4px' }}>Bill Created By: {billcreate}</div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <div style={{ borderTop: B, borderBottom: B, padding: '8px 10px', fontSize: '9pt' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '24px' }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 'bold', marginBottom: '3px' }}>Terms &amp; Conditions:</div>
+          <div style={{ fontWeight: 'normal', lineHeight: 1.35 }}>
+            1. Price are net<br />
+            2. Goods are dispatched on buyer&apos;s A/c &amp; risk.<br />
+            3. All disputes are subject to Ernakulam jurisdiction only.<br />
+            4. All remittance are to be made in favour of RAJADHANI FASHIONS, Ernakulam<br />
+            5. Payment within 15days. If not paid, interest will be charged at 21% annum<br />
+            6. Goods sold will not taken back.<br />
+            7. Damage goods will be taken back only for colour damages from 2 months pre- invoice only.
+          </div>
+        </div>
+        <div style={{ minWidth: '280px', textAlign: 'left', paddingLeft: '56px' }}>
+          <div style={{ fontWeight: 'bold' }}>{companyLabel}</div>
+        </div>
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '24px', marginTop: '6px' }}>
+        <div style={{ fontWeight: 'bold' }}>Salesman:{salesman}</div>
+        <div style={{ minWidth: '280px', paddingLeft: '56px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left' }}>
+          <div>Authorized Signatory</div>
+          <div style={{ marginTop: '4px', fontWeight: 'bold' }}>Bill Created By: {billcreate}</div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -25,8 +25,9 @@ function InvoicePage({ data, copyLabel, lineItems, showSummary, hsnList, fillerC
 }
 
 function SummaryContinuationPage({ data, hsnList, showTerms, copyLabel, invoiceId, marginTop }) {
+  const shellClassName = `invoice-page-content summary-page-shell${showTerms && hsnList.length === 0 ? ' terms-only-page-shell' : ''}`;
   return (
-    <div className="invoice-page-content summary-page-shell">
+    <div className={shellClassName}>
       {showTerms ? (
         <InvoiceHeader
           data={{ ...data, marginTop: marginTop || HEADER_TOP_SPACE }}

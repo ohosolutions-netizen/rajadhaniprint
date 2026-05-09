@@ -37,6 +37,7 @@ body {
   margin: 20px auto;
   padding: 0;
   background: #fff;
+  border: 1px solid #000;
   box-shadow: 0 4px 24px rgba(0,0,0,.18);
   font-size: 8pt;
   font-weight: 400;
@@ -77,6 +78,10 @@ body {
   padding: 4px 18px 8px;
 }
 
+.terms-only-page-shell {
+  padding-bottom: 28px;
+}
+
 @media print {
   body { background: #fff; }
   .a4-page {
@@ -106,6 +111,9 @@ body {
   }
   .invoice-page-content {
     padding: 4px 18px 95px;
+  }
+  .terms-only-page-shell {
+    padding-bottom: 28px;
   }
   .items-table-wrap {
     padding-bottom: 48px;
@@ -299,6 +307,15 @@ td, th {
 
 .summary-page-shell .summary-section-root {
   flex: 1;
+}
+
+.terms-only-page-shell .summary-section-root {
+  flex: 1;
+  min-height: 100%;
+}
+
+.terms-only-page-shell .summary-terms-anchor {
+  margin-top: 0;
 }
 
 /* ── Loading / empty state ── */
