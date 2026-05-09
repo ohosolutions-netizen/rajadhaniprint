@@ -91,6 +91,16 @@ td, th {
   font-size: 9pt;
   padding: 4px 8px;
 }
+.header-wrap-text {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.3;
+}
+.copy-label {
+  display: block;
+  text-align: center;
+  padding: 4px 8px;
+}
 
 /* ── Items table ── */
 .items-table th {
@@ -121,6 +131,13 @@ td, th {
 }
 .items-description,
 .items-barcode {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+}
+.items-text-clip {
+  display: block;
+  width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: clip;
