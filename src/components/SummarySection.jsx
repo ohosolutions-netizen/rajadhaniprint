@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 const B = '1px solid black';
 
 export function SummaryTop({ data }) {
+  const [qrFailed, setQrFailed] = useState(false);
   const {
     gross, grossEng, subtotal, discount, totaldisc, totaltax,
     roundOff, irn, ebill,
@@ -77,11 +78,12 @@ export function SummaryTop({ data }) {
 
         <tr>
           <td style={{ border: B, padding: '6px', verticalAlign: 'middle', textAlign: 'center' }}>
-            {ebill ? (
+            {(ebill && !qrFailed) ? (
               <img
                 src={ebill}
-                style={{ width: '96px', height: '96px', objectFit: 'contain' }}
+                style={{ width: '96px', height: '96px', objectFit: 'contain', display: 'block', margin: '0 auto' }}
                 alt="E-Invoice QR"
+                onError={() => setQrFailed(true)}
               />
             ) : (
               <div

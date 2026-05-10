@@ -4,478 +4,286 @@ import ItemsTable from './ItemsTable';
 import SummarySection from './SummarySection';
 import { buildHsnList, numberToWords } from '../data/invoiceData';
 
-/**
- * Renders a single invoice page (header + items, optionally + summary).
- */
-function InvoicePage({
-  data,
-  copyLabel,
-  lineItems,
-  showSummary,
-  hsnList,
-  fillerCount,
-  showFillerOnly,
-  fillerOnlyCount,
-  marginTop,
-  invoiceId,
-  suppressTotal = false,
-  extendAfterTotal = false,
-}) {
-  const totalqty = lineItems.reduce((s, i) => s + i.qty, 0);
-  return (
-    <div className="invoice-page-content" style={{ marginBottom: showSummary ? 0 : undefined }}>
-      <InvoiceHeader data={{ ...data, marginTop: marginTop || '0px' }} copyLabel={copyLabel} invoiceId={invoiceId} />
-      {!showFillerOnly ? (
-        <ItemsTable
-          lineItems={lineItems}
-          totalqty={totalqty}
-          fillerCount={fillerCount || 0}
-          suppressTotal={suppressTotal}
-          extendAfterTotal={extendAfterTotal}
-        />
-      ) : (
-        <div style={{ height: fillerOnlyCount ? `${Math.max(0, fillerOnlyCount) * 17}px` : 0 }} />
-      )}
-      {showSummary && (
-        <SummarySection data={data} hsnList={hsnList} />
-      )}
-    </div>
-  );
-}
+// ── Layout constants (all sizes in 15 px "row-unit" equivalents) ───────────
 
-function SummaryContinuationPage({ data, hsnList, showTerms, copyLabel, invoiceId, marginTop }) {
-  const shellClassName = `invoice-page-content summary-page-shell${showTerms && hsnList.length === 0 ? ' terms-only-page-shell' : ''}`;
-  return (
-    <div className={shellClassName}>
-      {showTerms ? (
-        <InvoiceHeader
-          data={{ ...data, marginTop: marginTop || HEADER_TOP_SPACE }}
-          copyLabel={copyLabel}
-          invoiceId={invoiceId}
-        />
-      ) : (
-        <div style={{ height: HEADER_TOP_SPACE }} />
-      )}
-      <SummarySection data={data} hsnList={hsnList} showTop={false} showTerms={showTerms} />
-    </div>
-  );
-}
+// How many data rows fit on a full item page (44 × 15 px fits A4 content area).
+const ITEM_ONLY_PAGE_SIZE = 44;
+
+// Conservative content capacity for a non-item page (post-items / summary / HSN / terms).
+// Actual measured capacity is ~49 units; 44 is deliberately conservative so we never overflow.
+const CONTENT_PAGE_UNITS = 44;
+
+// Height reserved for the pre-printed letterhead strip (margin-top on the header table).
+const HEADER_TOP_SPACE = '141px';
+
+// Summary Top height in row-units.
+//   Row 1: bank details + amounts table  ≈ 130 px  → 9 units
+//   Row 2: E-Invoice QR + Scan QR + notes ≈ 120 px → 8 units
+//   Borders / padding                              → 1 unit
+//   Safety margin                                  + 2 units
+//   Total                                          = 20 units
+const SUMMARY_UNITS = 20;
+
+// HSN table double-row header in row-units (2 header rows × 15 px ≈ 30 px ≈ 2 units).
+const HSN_HEADER_UNITS = 2;
+
+// Terms & Conditions section height in row-units (~150 px / 15 px ≈ 10; +2 safety = 12).
+const TERMS_UNITS = 12;
+
+// ── Chunk helper ───────────────────────────────────────────────────────────
 
 function chunkLineItems(lineItems, chunkSize) {
   const chunks = [];
-  for (let index = 0; index < lineItems.length; index += chunkSize) {
-    chunks.push(lineItems.slice(index, index + chunkSize));
+  for (let i = 0; i < lineItems.length; i += chunkSize) {
+    chunks.push(lineItems.slice(i, i + chunkSize));
   }
   return chunks;
 }
 
-// Items that fit on a single item-only page
-const ITEM_ONLY_PAGE_SIZE = 44;
-// Branch A: below this count + small HSN → all on one page
-const SAFE_SINGLE_PAGE_ITEM_LIMIT = 8;
-// Max HSN rows to allow combined single page
-const COMBINED_HSN_LIMIT = 4;
-// Pixels reserved for the printed company header strip
-const HEADER_TOP_SPACE = '141px';
-// "Row units" consumed by the summary top block (totals + QR)
-const SUMMARY_ON_ITEM_PAGE_UNITS = 12;
-// Row units consumed by the HSN table header row (spans 2 header rows)
-const ITEM_PAGE_HSN_HEADER_UNITS = 2;
-// Row units consumed by the terms & conditions block
-const TERMS_SECTION_UNITS = 12;
-// HSN rows small enough to keep terms on the same summary page
-const SUMMARY_TOP_PAGE_HSN_WITH_TERMS_LIMIT = 1;
-// Maximum HSN rows on the first summary page
-const SUMMARY_FIRST_PAGE_HSN_ROWS = 36;
-// Maximum HSN rows on a continuation summary page
-const SUMMARY_CONTINUATION_HSN_ROWS = 30;
-// HSN rows that can share the final summary page with terms
-const SUMMARY_LAST_PAGE_HSN_ROWS_WITH_TERMS = 0;
-
-function removeTopFromFirstSummarySegment(segments) {
-  return segments.map((segment, index) => (
-    index === 0 ? { ...segment, showTop: false } : segment
-  ));
-}
+// ── Page planner ───────────────────────────────────────────────────────────
 
 /**
- * Splits hsnList into page segments, each carrying showTop / showTerms flags.
- * Terms are treated as an independent block: kept on the first page only when
- * the HSN block is tiny enough to leave room; otherwise pushed to a dedicated page.
+ * Builds a sequential list of page descriptors for one invoice copy.
+ *
+ * Sections are placed in order, one after the other, on the current page.
+ * When a section (or the minimum useful fragment of it) does not fit in the
+ * remaining space, a new page is started.
+ *
+ *   1. Line items  – one or more item pages; last page shows the Total row.
+ *   2. Summary Top – fixed height (SUMMARY_UNITS).  Placed on the last item
+ *      page if spare ≥ SUMMARY_UNITS, otherwise starts a new summary page.
+ *   3. HSN table   – dynamic, may split freely across pages.  The header is
+ *      repeated on each page that contains HSN rows.
+ *   4. Terms & Conditions – fixed height (TERMS_UNITS).  Placed on the page
+ *      where the last HSN row lands if spare ≥ TERMS_UNITS, otherwise placed
+ *      at the top of a fresh page.
+ *
+ * Page descriptor shape:
+ *   items        {Array|null}  – line items (null for non-item pages)
+ *   suppressTotal {boolean}    – hide Total row (intermediate item pages)
+ *   showTop      {boolean}     – render Summary Top block
+ *   hsnSlice     {Array}       – HSN rows to render on this page
+ *   showTerms    {boolean}     – render Terms & Conditions block
+ *   showHeader   {boolean}     – show full InvoiceHeader vs. letterhead spacer
+ *                                (false only for HSN-continuation pages)
  */
-function buildSummarySegments(hsnList) {
-  if (hsnList.length <= SUMMARY_TOP_PAGE_HSN_WITH_TERMS_LIMIT) {
-    return [{ hsnList, showTop: true, showTerms: true }];
-  }
+function buildInvoicePlan(lineItems, hsnList) {
+  const chunks = chunkLineItems(lineItems, ITEM_ONLY_PAGE_SIZE);
+  if (chunks.length === 0) chunks.push([]); // guard: empty invoice
 
-  if (hsnList.length <= SUMMARY_FIRST_PAGE_HSN_ROWS) {
-    return [
-      { hsnList, showTop: true, showTerms: false },
-      { hsnList: [], showTop: false, showTerms: true },
-    ];
-  }
+  const pages = [];
 
-  const segments = [];
-  segments.push({
-    hsnList: hsnList.slice(0, SUMMARY_FIRST_PAGE_HSN_ROWS),
-    showTop: true,
-    showTerms: false,
+  // ── Leading item pages (no Total row shown) ─────────────────────────────
+  chunks.slice(0, -1).forEach((chunk) => {
+    pages.push({
+      items: chunk,
+      suppressTotal: true,
+      showTop: false,
+      hsnSlice: [],
+      showTerms: false,
+      showHeader: true,
+    });
   });
 
-  let index = SUMMARY_FIRST_PAGE_HSN_ROWS;
-  while (index < hsnList.length) {
-    const remaining = hsnList.length - index;
+  // ── Last item page ───────────────────────────────────────────────────────
+  const lastChunk = chunks[chunks.length - 1];
+  let spare = ITEM_ONLY_PAGE_SIZE - lastChunk.length; // row-units available below items+Total
 
-    if (remaining <= SUMMARY_LAST_PAGE_HSN_ROWS_WITH_TERMS) {
-      segments.push({
-        hsnList: hsnList.slice(index),
-        showTop: false,
-        showTerms: true,
-      });
-      break;
-    }
+  let cur = {
+    items: lastChunk,
+    suppressTotal: false,
+    showTop: false,
+    hsnSlice: [],
+    showTerms: false,
+    showHeader: true,
+  };
+  pages.push(cur);
 
-    if (remaining <= SUMMARY_CONTINUATION_HSN_ROWS) {
-      segments.push({
-        hsnList: hsnList.slice(index),
-        showTop: false,
-        showTerms: false,
-      });
-      segments.push({
-        hsnList: [],
-        showTop: false,
-        showTerms: true,
-      });
-      break;
-    }
-
-    const nextIndex = index + SUMMARY_CONTINUATION_HSN_ROWS;
-    segments.push({
-      hsnList: hsnList.slice(index, nextIndex),
-      showTop: false,
+  // ── Section 2: Summary Top ───────────────────────────────────────────────
+  if (spare >= SUMMARY_UNITS) {
+    cur.showTop = true;
+    spare -= SUMMARY_UNITS;
+  } else {
+    // Summary does not fit → start a dedicated post-items page.
+    spare = CONTENT_PAGE_UNITS - SUMMARY_UNITS;
+    cur = {
+      items: null,
+      suppressTotal: false,
+      showTop: true,
+      hsnSlice: [],
       showTerms: false,
-    });
-    index = nextIndex;
+      showHeader: true,
+    };
+    pages.push(cur);
   }
 
-  return segments;
+  // ── Section 3: HSN table (may split across pages) ───────────────────────
+  const hsnRemaining = [...hsnList];
+  let hsnEverPlaced = false; // tracks whether any HSN row has been placed yet
+
+  while (hsnRemaining.length > 0) {
+    const minFit = HSN_HEADER_UNITS + 1; // need room for header + at least one row
+    if (spare >= minFit) {
+      // Place as many rows as fit on this page.
+      const rowCapacity = spare - HSN_HEADER_UNITS;
+      const take = Math.min(rowCapacity, hsnRemaining.length);
+      cur.hsnSlice = hsnRemaining.splice(0, take);
+      spare -= HSN_HEADER_UNITS + take;
+      hsnEverPlaced = true;
+    } else {
+      // Not enough room even for one row → overflow to a new page.
+      // If HSN was already started on a previous page this is a "continuation"
+      // page (show only the letterhead spacer, no invoice-details header).
+      // If HSN hasn't started yet this is a fresh page (show full header).
+      cur = {
+        items: null,
+        suppressTotal: false,
+        showTop: false,
+        hsnSlice: [],
+        showTerms: false,
+        showHeader: !hsnEverPlaced,
+      };
+      pages.push(cur);
+      spare = CONTENT_PAGE_UNITS;
+    }
+  }
+
+  // ── Section 4: Terms & Conditions ───────────────────────────────────────
+  if (spare >= TERMS_UNITS) {
+    cur.showTerms = true;
+  } else {
+    pages.push({
+      items: null,
+      suppressTotal: false,
+      showTop: false,
+      hsnSlice: [],
+      showTerms: true,
+      showHeader: true,
+    });
+  }
+
+  return pages;
 }
+
+// ── Page renderer ──────────────────────────────────────────────────────────
 
 /**
- * Decides which post-item sections (summary top, HSN rows, terms) fit on the
- * current item page and which must overflow to dedicated summary pages.
- *
- * Rules (from spec):
- *  - Summary top only appears if it AND the entire HSN block both fit.
- *  - HSN is the only spillable section (may continue across pages).
- *  - Terms never split; if they don't fit after HSN they move to the next page.
- *
- * @param {Array}  hsnList            - Full HSN grouped rows.
- * @param {number} itemPageSpareUnits - Spare row-equivalent units on the item page.
+ * Renders one planned page as an `.a4-page` element.
  */
-function buildPostItemSections(hsnList, itemPageSpareUnits = 0) {
-  const remainingHsn = [...hsnList];
-  const itemPageSection = {
-    showTop: false,
-    hsnList: [],
-    showTerms: false,
-  };
+function renderPlannedPage({
+  page, summaryData, copyLabel, invoiceId,
+  isLastCopy, isLastPage, marginTop, pageKey,
+}) {
+  const { items, suppressTotal, showTop, hsnSlice, showTerms, showHeader } = page;
+  const { totalqty } = summaryData;
 
-  let termsPlaced = false;
-  let topPlaced = false;
+  const hasSummaryContent = showTop || hsnSlice.length > 0 || showTerms;
+  const isTermsOnly       = !showTop && hsnSlice.length === 0 && showTerms;
 
-  const fullHsnUnits = remainingHsn.length > 0
-    ? ITEM_PAGE_HSN_HEADER_UNITS + remainingHsn.length
-    : 0;
-  // Summary top and the entire HSN block must both fit together or neither goes inline.
-  const canFitTopAndEntireHsn = itemPageSpareUnits >= SUMMARY_ON_ITEM_PAGE_UNITS + fullHsnUnits;
+  let innerContent;
 
-  if (canFitTopAndEntireHsn) {
-    itemPageSection.showTop = true;
-    topPlaced = true;
-
-    itemPageSection.hsnList = remainingHsn.splice(0);
-    const unitsLeft = itemPageSpareUnits - SUMMARY_ON_ITEM_PAGE_UNITS - fullHsnUnits;
-
-    if (remainingHsn.length === 0 && unitsLeft >= TERMS_SECTION_UNITS) {
-      itemPageSection.showTerms = true;
-      termsPlaced = true;
-    }
-  }
-
-  if (remainingHsn.length === 0) {
-    return {
-      itemPageSection,
-      summaryPages: termsPlaced ? [] : [{ hsnList: [], showTop: false, showTerms: true }],
-    };
-  }
-
-  const summaryPages = topPlaced
-    ? removeTopFromFirstSummarySegment(buildSummarySegments(remainingHsn))
-    : buildSummarySegments(remainingHsn);
-
-  return {
-    itemPageSection,
-    summaryPages,
-  };
-}
-
-function renderSummarySegmentPage({ copyLabel, summaryData, invoiceId, segment, isLastCopy, isLastPage, mt2, pageKey }) {
-  return (
-    <div className="a4-page" key={pageKey}>
-      {segment.showTop ? (
-        <div className="invoice-page-content summary-page-shell">
-          <InvoiceHeader data={{ ...summaryData, marginTop: mt2 }} copyLabel={copyLabel} invoiceId={invoiceId} />
-          <SummarySection
-            data={summaryData}
-            hsnList={segment.hsnList}
-            showTop={segment.showTop}
-            showTerms={segment.showTerms}
-          />
-        </div>
-      ) : (
-        <SummaryContinuationPage
-          data={summaryData}
-          hsnList={segment.hsnList}
-          showTerms={segment.showTerms}
+  if (items !== null) {
+    // ── Item page (leading pages show no Total; last page shows Total + optional summary) ──
+    innerContent = (
+      <div className="invoice-page-content">
+        <InvoiceHeader
+          data={{ ...summaryData, marginTop }}
           copyLabel={copyLabel}
           invoiceId={invoiceId}
-          marginTop={mt2}
         />
-      )}
+        <ItemsTable
+          lineItems={items}
+          totalqty={totalqty}
+          fillerCount={0}
+          suppressTotal={suppressTotal}
+          extendAfterTotal={false}
+        />
+        {hasSummaryContent && (
+          <SummarySection
+            data={summaryData}
+            hsnList={hsnSlice}
+            showTop={showTop}
+            showTerms={showTerms}
+          />
+        )}
+      </div>
+    );
+  } else {
+    // ── Post-item page (summary / HSN / terms) ───────────────────────────────
+    // summary-page-shell → flex column so Terms anchor (margin-top:auto) pins to bottom.
+    // terms-only-page-shell → overrides flex so Terms starts at the top of the section.
+    const shellClass = [
+      'invoice-page-content',
+      'summary-page-shell',
+      isTermsOnly ? 'terms-only-page-shell' : '',
+    ].filter(Boolean).join(' ');
+
+    innerContent = (
+      <div className={shellClass}>
+        {showHeader
+          ? <InvoiceHeader data={{ ...summaryData, marginTop }} copyLabel={copyLabel} invoiceId={invoiceId} />
+          : <div style={{ height: marginTop }} />  /* letterhead spacer for continuation pages */
+        }
+        <SummarySection
+          data={summaryData}
+          hsnList={hsnSlice}
+          showTop={showTop}
+          showTerms={showTerms}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="a4-page" key={pageKey}>
+      {innerContent}
       {(!isLastCopy || !isLastPage) && <div className="page-break" />}
     </div>
   );
 }
 
+// ── InvoiceCopy ────────────────────────────────────────────────────────────
+
 /**
- * Renders one complete invoice copy set (may span multiple pages).
- *
- * Branch A: ≤8 items, small HSN           → all on one page
- * Branch B: ≤16 items                     → page 1: items; page 2+: summary/HSN/terms
- * Branch C: ≤ITEM_ONLY_PAGE_SIZE items    → page 1: items (padded); page 2+: summary/HSN/terms
- * Long    : >ITEM_ONLY_PAGE_SIZE items    → N item-only pages + last page + summary pages
- *
- * All branches use buildPostItemSections() to determine what follows items.
+ * Renders one complete invoice copy set (Customer / Office / Transport copy).
+ * Delegates all pagination decisions to buildInvoicePlan().
  */
 export function InvoiceCopy({ data, copyLabel, isLastCopy, invoiceId }) {
   const { lineItems } = data;
-  const lines = lineItems.length;
-  const hsnList = buildHsnList(lineItems);
-  const hsnsize = hsnList.length;
-  const totaline = lines + hsnsize;
-  const totalqty = lineItems.reduce((s, i) => s + i.qty, 0);
-  const gross = data.gross;
+  const hsnList  = buildHsnList(lineItems);
+  const gross    = data.gross;
   const grossEng = numberToWords(gross);
-  const enrichedData = { ...data, gross, grossEng, totalqty };
-  const companyLabel = 'For RAJADHANI FASHIONS';
-  const summaryData = { ...enrichedData, companyLabel };
-  const mt1 = HEADER_TOP_SPACE;
-  const mt2 = HEADER_TOP_SPACE;
+  const totalqty = lineItems.reduce((s, i) => s + i.qty, 0);
 
-  /* ─── Branch A: everything fits on one page ─── */
-  if (lines <= SAFE_SINGLE_PAGE_ITEM_LIMIT && totaline <= 18 && hsnsize <= COMBINED_HSN_LIMIT) {
-    const fillerCount = lines < 16 && hsnsize <= 4 ? 14 - lines : 0;
-    return (
-      <div className="a4-page">
-        <InvoicePage data={summaryData} copyLabel={copyLabel} lineItems={lineItems}
-          showSummary hsnList={hsnList} fillerCount={fillerCount} marginTop={mt1} invoiceId={invoiceId} />
-        {!isLastCopy && <div className="page-break" />}
-      </div>
-    );
-  }
+  const summaryData = {
+    ...data,
+    gross,
+    grossEng,
+    totalqty,
+    companyLabel: 'For RAJADHANI FASHIONS',
+  };
 
-  /* ─── Branch B: ≤16 items — two-page split ─── */
-  if (lines <= 16) {
-    // Conservative spare-unit floor: worst case for this range is 44-16=28
-    const page1Filler = 28;
-    const { itemPageSection, summaryPages } = buildPostItemSections(hsnList, page1Filler);
-    const showInlineSection =
-      itemPageSection.showTop ||
-      itemPageSection.hsnList.length > 0 ||
-      itemPageSection.showTerms;
-    const hasMorePages = summaryPages.length > 0;
+  const plan = buildInvoicePlan(lineItems, hsnList);
 
-    return (
-      <>
-        <div className="a4-page">
-          <div className="invoice-page-content">
-            <InvoiceHeader data={{ ...summaryData, marginTop: mt1 }} copyLabel={copyLabel} invoiceId={invoiceId} />
-            <ItemsTable
-              lineItems={lineItems}
-              totalqty={totalqty}
-              fillerCount={page1Filler}
-              suppressTotal={false}
-              extendAfterTotal={false}
-            />
-            {showInlineSection && (
-              <SummarySection
-                data={summaryData}
-                hsnList={itemPageSection.hsnList}
-                showTop={itemPageSection.showTop}
-                showTerms={itemPageSection.showTerms}
-              />
-            )}
-          </div>
-          {(!isLastCopy || hasMorePages) && <div className="page-break" />}
-        </div>
-        {summaryPages.map((segment, index) => {
-          const isLastPage = index === summaryPages.length - 1;
-          return renderSummarySegmentPage({
-            copyLabel,
-            summaryData,
-            invoiceId,
-            segment,
-            isLastCopy,
-            isLastPage,
-            mt2,
-            pageKey: `${copyLabel}-summary-${index + 1}`,
-          });
-        })}
-      </>
-    );
-  }
-
-  /* ─── Branch C: >16 and ≤ITEM_ONLY_PAGE_SIZE items ─── */
-  if (lines <= ITEM_ONLY_PAGE_SIZE) {
-    const page1Filler = ITEM_ONLY_PAGE_SIZE - lines;
-    const { itemPageSection, summaryPages } = buildPostItemSections(hsnList, page1Filler);
-    const showInlineSection =
-      itemPageSection.showTop ||
-      itemPageSection.hsnList.length > 0 ||
-      itemPageSection.showTerms;
-    const hasMorePages = summaryPages.length > 0;
-
-    return (
-      <>
-        <div className="a4-page">
-          <div className="invoice-page-content">
-            <InvoiceHeader data={{ ...summaryData, marginTop: mt1 }} copyLabel={copyLabel} invoiceId={invoiceId} />
-            <ItemsTable
-              lineItems={lineItems}
-              totalqty={totalqty}
-              fillerCount={page1Filler}
-              suppressTotal={false}
-              extendAfterTotal={false}
-            />
-            {showInlineSection && (
-              <SummarySection
-                data={summaryData}
-                hsnList={itemPageSection.hsnList}
-                showTop={itemPageSection.showTop}
-                showTerms={itemPageSection.showTerms}
-              />
-            )}
-          </div>
-          {(!isLastCopy || hasMorePages) && <div className="page-break" />}
-        </div>
-        {summaryPages.map((segment, index) => {
-          const isLastPage = index === summaryPages.length - 1;
-          return renderSummarySegmentPage({
-            copyLabel,
-            summaryData,
-            invoiceId,
-            segment,
-            isLastCopy,
-            isLastPage,
-            mt2,
-            pageKey: `${copyLabel}-summary-${index + 1}`,
-          });
-        })}
-      </>
-    );
-  }
-
-  /* ─── Long invoice: >ITEM_ONLY_PAGE_SIZE items ───
-     Split into full item-only pages, then apply the same section-planner
-     (buildPostItemSections) to the last chunk — identical to Branches B/C.
-  ─── */
-  const chunks = chunkLineItems(lineItems, ITEM_ONLY_PAGE_SIZE);
-  const leadingChunks = chunks.slice(0, -1);
-  const lastChunk = chunks[chunks.length - 1];
-  // Spare row-units available on the last item page below the items+total row
-  const lastPageSpareUnits = ITEM_ONLY_PAGE_SIZE - lastChunk.length;
-
-  const { itemPageSection, summaryPages } = buildPostItemSections(hsnList, lastPageSpareUnits);
-  const showInlineSection =
-    itemPageSection.showTop ||
-    itemPageSection.hsnList.length > 0 ||
-    itemPageSection.showTerms;
-  const hasMorePages = summaryPages.length > 0;
-
-  const pages = [];
-
-  // Full item-only pages (no Total row, no summary)
-  leadingChunks.forEach((chunk, pageIndex) => {
-    pages.push(
-      <div className="a4-page" key={`${copyLabel}-page-${pageIndex + 1}`}>
-        <div className="invoice-page-content">
-          <InvoiceHeader
-            data={{ ...summaryData, marginTop: mt1 }}
-            copyLabel={copyLabel}
-            invoiceId={invoiceId}
-          />
-          <ItemsTable
-            lineItems={chunk}
-            totalqty={totalqty}
-            fillerCount={0}
-            suppressTotal={true}
-            extendAfterTotal={false}
-          />
-        </div>
-        <div className="page-break" />
-      </div>
-    );
-  });
-
-  // Last item page — shows Total row, then summary sections if they fit
-  pages.push(
-    <div className="a4-page" key={`${copyLabel}-page-${chunks.length}`}>
-      <div className="invoice-page-content">
-        <InvoiceHeader
-          data={{ ...summaryData, marginTop: mt1 }}
-          copyLabel={copyLabel}
-          invoiceId={invoiceId}
-        />
-        <ItemsTable
-          lineItems={lastChunk}
-          totalqty={totalqty}
-          fillerCount={0}
-          suppressTotal={false}
-          extendAfterTotal={false}
-        />
-        {showInlineSection && (
-          <SummarySection
-            data={summaryData}
-            hsnList={itemPageSection.hsnList}
-            showTop={itemPageSection.showTop}
-            showTerms={itemPageSection.showTerms}
-          />
-        )}
-      </div>
-      {(!isLastCopy || hasMorePages) && <div className="page-break" />}
-    </div>
+  return (
+    <>
+      {plan.map((page, index) =>
+        renderPlannedPage({
+          page,
+          summaryData,
+          copyLabel,
+          invoiceId,
+          isLastCopy,
+          isLastPage: index === plan.length - 1,
+          marginTop: HEADER_TOP_SPACE,
+          pageKey: `${copyLabel}-page-${index + 1}`,
+        })
+      )}
+    </>
   );
-
-  // Overflow summary / HSN / terms pages
-  summaryPages.forEach((segment, index) => {
-    const isLastPage = index === summaryPages.length - 1;
-    pages.push(
-      renderSummarySegmentPage({
-        copyLabel,
-        summaryData,
-        invoiceId,
-        segment,
-        isLastCopy,
-        isLastPage,
-        mt2,
-        pageKey: `${copyLabel}-summary-${index + 1}`,
-      })
-    );
-  });
-
-  return <>{pages}</>;
 }
+
+// ── Invoice (top-level) ────────────────────────────────────────────────────
 
 export default function Invoice({ data, invoiceId, copyFilter = 'all' }) {
   const allCopies = [
@@ -485,7 +293,7 @@ export default function Invoice({ data, invoiceId, copyFilter = 'all' }) {
   ];
   const copies = copyFilter === 'all'
     ? allCopies
-    : allCopies.filter((copy) => copy.label === copyFilter);
+    : allCopies.filter((c) => c.label === copyFilter);
 
   return (
     <div className="invoice-document">

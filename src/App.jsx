@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './index.css';
 import Invoice from './components/Invoice';
 import { mapCreatorRecordToInvoice } from './data/invoiceData';
@@ -6,8 +6,6 @@ import { mapCreatorRecordToInvoice } from './data/invoiceData';
 const TEST_INVOICE_ID = '316828000003416382';
 const CREATOR_APP_NAME = 'oho-erp';
 const CREATOR_REPORT_NAME = 'API_Report_Sales';
-const BOOKS_RESPONSE_PUBLIC_KEY = 'NS3vabBzVNC1G56uBReYEAwyQ';
-const BOOKS_RESPONSE_BASE_URL = `https://www.zohoapis.in/creator/custom/rajadhanifashions/Books_response?publickey=${BOOKS_RESPONSE_PUBLIC_KEY}`;
 const CREATOR_FIELDS = [
   'Customer',
   'Warehouse',
@@ -39,7 +37,11 @@ const CREATOR_FIELDS = [
   'Tax',
   'Round_Off',
   'Bill_Amount',
+  'IRN_Number',
   'E_invoice_ID',
+  'E_Invoice_QR',
+  'E_Invoice_QR_Data',
+  'E_Invoice_QR_Link',
   'eInvoice_Status',
   'Line_Item',
 ].join(',');
@@ -135,96 +137,6 @@ async function fetchInvoiceFromReport(creatorSdk, invoiceId) {
   return null;
 }
 
-async function fetchBooksResponse(integrationId) {
-  if (!integrationId) return null;
-
-  const response = await window.fetch(
-    `${BOOKS_RESPONSE_BASE_URL}&Rec_ID=${encodeURIComponent(integrationId)}`,
-    {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-      },
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`Books response fetch failed (${response.status})`);
-  }
-
-  const payload = await response.json();
-  if (payload?.code !== 3000 || !payload?.result) {
-    return null;
-  }
-
-  const rawResult = typeof payload.result === 'string'
-    ? payload.result
-    : JSON.stringify(payload.result || {});
-
-  let parsedResult = payload.result;
-  if (typeof parsedResult === 'string') {
-    try {
-      parsedResult = JSON.parse(parsedResult);
-    } catch (error) {
-      console.warn('Unable to parse Books response result payload, falling back to raw extraction.', error);
-      parsedResult = {};
-    }
-  }
-
-  const qrAliases = ['ebill', 'qr_link', 'qrLink', 'qr_url', 'qrUrl', 'qr'];
-  const irnAliases = ['irn', 'inv_ref_num', 'invRefNum', 'einvoiceid', 'eInvoiceID'];
-
-  const pickRawAliasValue = (aliases) => {
-    for (const alias of aliases) {
-      const match = rawResult.match(new RegExp(`"${alias}"\\s*:\\s*"([^"]+)"`, 'i'));
-      if (match?.[1]) return match[1];
-    }
-    return '';
-  };
-
-  const pickObjectAliasValue = (source, aliases) => {
-    if (!source || typeof source !== 'object') return '';
-    for (const alias of aliases) {
-      if (source[alias]) return source[alias];
-      const matchedKey = Object.keys(source).find((key) => key.toLowerCase() === alias.toLowerCase());
-      if (matchedKey && source[matchedKey]) return source[matchedKey];
-    }
-    return '';
-  };
-
-  const cleanedEbill = String(pickObjectAliasValue(parsedResult, qrAliases) || pickRawAliasValue(qrAliases) || '')
-    .trim()
-    .replace(/\\\//g, '/')
-    .replace(/[\\"]+$/g, '');
-  const cleanedIrn = String(pickObjectAliasValue(parsedResult, irnAliases) || pickRawAliasValue(irnAliases) || '')
-    .trim()
-    .replace(/[\\"]+$/g, '');
-
-  return {
-    ebill: cleanedEbill,
-    irn: cleanedIrn,
-  };
-}
-
-async function fetchEbillImageUrl(ebillUrl) {
-  if (!ebillUrl) return '';
-
-  const response = await window.fetch(ebillUrl, {
-    method: 'GET',
-    credentials: 'include',
-  });
-
-  if (!response.ok) {
-    throw new Error(`E-bill image fetch failed (${response.status})`);
-  }
-
-  const blob = await response.blob();
-  if (!blob || !blob.size) {
-    return '';
-  }
-
-  return window.URL.createObjectURL(blob);
-}
 
 export default function App() {
   const [invoiceId, setInvoiceId] = useState(() => getInvoiceIdFromUrl());
@@ -239,7 +151,6 @@ export default function App() {
   const [selectedPrintOption, setSelectedPrintOption] = useState('all');
   const [activePrintOption, setActivePrintOption] = useState('all');
   const [isPreparingPrint, setIsPreparingPrint] = useState(false);
-  const ebillObjectUrlRef = useRef('');
 
   const handlePrint = () => {
     setSelectedPrintOption('all');
@@ -332,39 +243,8 @@ export default function App() {
 
         if (isActive) {
           const mappedInvoice = mapCreatorRecordToInvoice(fetched.record);
-          let enrichedInvoice = mappedInvoice;
 
-          try {
-            const booksResponse = await fetchBooksResponse(mappedInvoice.integrationId);
-            if (booksResponse?.ebill || booksResponse?.irn) {
-              let resolvedEbill = booksResponse.ebill || mappedInvoice.ebill;
-
-              if (booksResponse.ebill) {
-                try {
-                  const ebillImageUrl = await fetchEbillImageUrl(booksResponse.ebill);
-                  if (ebillImageUrl) {
-                    if (ebillObjectUrlRef.current) {
-                      window.URL.revokeObjectURL(ebillObjectUrlRef.current);
-                    }
-                    ebillObjectUrlRef.current = ebillImageUrl;
-                    resolvedEbill = ebillImageUrl;
-                  }
-                } catch (error) {
-                  console.warn('Unable to fetch e-bill QR image directly.', error);
-                }
-              }
-
-              enrichedInvoice = {
-                ...mappedInvoice,
-                ebill: resolvedEbill,
-                irn: booksResponse.irn || mappedInvoice.irn,
-              };
-            }
-          } catch (error) {
-            console.warn('Unable to fetch Books response for e-invoice details.', error);
-          }
-
-          setInvoiceDetails(enrichedInvoice);
+          setInvoiceDetails(mappedInvoice);
           setFetchedCustomer(
             fetched.record.Customer?.display_value ||
             fetched.record.Customer?.zc_display_value ||
@@ -392,13 +272,7 @@ export default function App() {
     }
 
     loadInvoiceContext();
-    return () => {
-      isActive = false;
-      if (ebillObjectUrlRef.current) {
-        window.URL.revokeObjectURL(ebillObjectUrlRef.current);
-        ebillObjectUrlRef.current = '';
-      }
-    };
+    return () => { isActive = false; };
   }, []);
 
   useEffect(() => {

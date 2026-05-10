@@ -266,8 +266,23 @@ export function mapCreatorRecordToInvoice(record) {
     totaltax: totalTax,
     gross: grossAmount,
     roundOff: toNumber(record.Round_Off),
-    irn: getDisplayValue(record.E_invoice_ID),
-    ebill: '',
+    irn: getDisplayValue(pickFirstValue(
+      record.IRN_Number,
+      record.E_invoice_ID,
+      record.E_Invoice_ID,
+      record.IRN,
+      record.irn,
+    )),
+    ebill: getDisplayValue(pickFirstValue(
+      record.E_Invoice_QR,
+      record.E_Invoice_QR_Data,
+      record.E_invoice_QR_Data,
+      record.E_Invoice_QR_Link,
+      record.E_invoice_QR_Link,
+      record.QR_Code_Link,
+      record.QR_Link,
+      record.QR_Data,
+    )),
     lineItems: mappedLineItems,
   };
 }
