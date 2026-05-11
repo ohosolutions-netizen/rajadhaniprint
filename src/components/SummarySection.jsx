@@ -12,9 +12,22 @@ export function SummaryTop({ data }) {
 
   return (
     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <colgroup>
+        {/* 10-column grid: top row colspan=5 (50/50), bottom row colspan=3,3,4 (30/30/40) */}
+        <col style={{ width: '10%' }} />
+        <col style={{ width: '10%' }} />
+        <col style={{ width: '10%' }} />
+        <col style={{ width: '10%' }} />
+        <col style={{ width: '10%' }} />
+        <col style={{ width: '10%' }} />
+        <col style={{ width: '10%' }} />
+        <col style={{ width: '10%' }} />
+        <col style={{ width: '10%' }} />
+        <col style={{ width: '10%' }} />
+      </colgroup>
       <tbody>
         <tr>
-          <td style={{ width: '40%', border: B, padding: '8px 6px', verticalAlign: 'top' }}>
+          <td colSpan={5} style={{ border: B, padding: '8px 6px', verticalAlign: 'top' }}>
             <div style={{ fontSize: '10pt', paddingBottom: '5px', borderBottom: '1px solid #bbb', marginBottom: '8px', fontWeight: 'bold' }}>
               Rupees {grossEng} Only
             </div>
@@ -32,52 +45,54 @@ export function SummaryTop({ data }) {
             )}
           </td>
 
-          <td style={{ width: '15%', border: B, verticalAlign: 'top' }} />
-
-          <td style={{ width: '45%', border: B, verticalAlign: 'top', padding: 0 }}>
+          <td colSpan={5} style={{ border: B, verticalAlign: 'top', padding: 0, position: 'relative', paddingBottom: '42px' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <tbody>
                 <tr>
-                  <td style={{ padding: '3px 10px', fontWeight: 'bold' }}>Total</td>
-                  <td style={{ textAlign: 'right', padding: '3px 10px', fontWeight: 'bold' }}>{subtotal.toFixed(2)}</td>
+                  <td style={{ padding: '4px 10px', fontWeight: 'bold', fontSize: '10pt' }}>Total</td>
+                  <td style={{ textAlign: 'right', padding: '4px 10px', fontWeight: 'bold', fontSize: '10pt' }}>{subtotal.toFixed(2)}</td>
                 </tr>
                 {discount > 0 && (
                   <tr>
-                    <td style={{ padding: '3px 10px', fontWeight: 'bold' }}>Total Discount @{discount.toFixed(2)}%</td>
-                    <td style={{ textAlign: 'right', padding: '3px 10px', fontWeight: 'bold' }}>{totaldisc.toFixed(2)}</td>
+                    <td style={{ padding: '4px 10px', fontWeight: 'bold', fontSize: '10pt' }}>Total Discount @{discount.toFixed(2)}%</td>
+                    <td style={{ textAlign: 'right', padding: '4px 10px', fontWeight: 'bold', fontSize: '10pt' }}>{totaldisc.toFixed(2)}</td>
                   </tr>
                 )}
                 <tr>
-                  <td style={{ padding: '3px 10px', fontWeight: 'bold' }}>Total Taxable Value</td>
-                  <td style={{ textAlign: 'right', padding: '3px 10px', fontWeight: 'bold' }}>{taxvalue.toFixed(2)}</td>
+                  <td style={{ padding: '4px 10px', fontWeight: 'bold', fontSize: '10pt' }}>Total Taxable Value</td>
+                  <td style={{ textAlign: 'right', padding: '4px 10px', fontWeight: 'bold', fontSize: '10pt' }}>{taxvalue.toFixed(2)}</td>
                 </tr>
                 <tr>
-                  <td style={{ padding: '3px 10px', fontWeight: 'bold' }}>Total Tax Amount</td>
-                  <td style={{ textAlign: 'right', padding: '3px 10px', fontWeight: 'bold' }}>{totaltax.toFixed(2)}</td>
+                  <td style={{ padding: '4px 10px', fontWeight: 'bold', fontSize: '10pt' }}>Total Tax Amount</td>
+                  <td style={{ textAlign: 'right', padding: '4px 10px', fontWeight: 'bold', fontSize: '10pt' }}>{totaltax.toFixed(2)}</td>
                 </tr>
                 <tr>
-                  <td style={{ padding: '3px 10px', fontWeight: 'bold' }}>Round Off</td>
-                  <td style={{ textAlign: 'right', padding: '3px 10px', fontWeight: 'bold' }}>{roundOff.toFixed(2)}</td>
+                  <td style={{ padding: '4px 10px', fontWeight: 'bold', fontSize: '10pt' }}>Round Off</td>
+                  <td style={{ textAlign: 'right', padding: '4px 10px', fontWeight: 'bold', fontSize: '10pt' }}>{roundOff.toFixed(2)}</td>
                 </tr>
               </tbody>
             </table>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <tbody>
-                <tr>
-                  <td style={{ padding: '6px 10px', fontWeight: 'bold', fontSize: '10pt', border: 'none' }}>
-                    Bill Amount
-                  </td>
-                  <td style={{ textAlign: 'right', padding: '6px 10px', fontSize: '14pt', fontWeight: 'bold', border: 'none' }}>
-                    ₹{gross.toFixed(2)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            {/* Bill Amount pinned to bottom of cell */}
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, borderTop: B }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <tbody>
+                  <tr>
+                    <td style={{ padding: '6px 10px', fontWeight: 'bold', fontSize: '10pt', border: 'none' }}>
+                      Bill Amount
+                    </td>
+                    <td style={{ textAlign: 'right', padding: '6px 10px', fontSize: '14pt', fontWeight: 'bold', border: 'none' }}>
+                      ₹{gross.toFixed(2)}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </td>
         </tr>
 
         <tr>
-          <td style={{ border: B, padding: '6px', verticalAlign: 'middle', textAlign: 'center' }}>
+          {/* 30% = colspan 3 */}
+          <td colSpan={3} style={{ border: B, padding: '6px', verticalAlign: 'middle', textAlign: 'center' }}>
             {(ebill && !qrFailed) ? (
               <img
                 src={ebill}
@@ -104,7 +119,8 @@ export function SummaryTop({ data }) {
             )}
           </td>
 
-          <td style={{ border: B, textAlign: 'center', padding: '6px', verticalAlign: 'middle' }}>
+          {/* 30% = colspan 3 */}
+          <td colSpan={3} style={{ border: B, textAlign: 'center', padding: '6px', verticalAlign: 'middle' }}>
             <img
               src="https://qrcode.tec-it.com/API/QRCode?data=upi%3A%2F%2Fpay%3Fpa%3Dpaytmqr1nxn70zbes%40paytm%26pn%3DPaytm&size=5"
               alt="Scan and Pay QR"
@@ -113,7 +129,8 @@ export function SummaryTop({ data }) {
             <p style={{ margin: '2px 0 0 0', fontSize: '8pt', fontWeight: 'bold' }}>Scan and Pay</p>
           </td>
 
-          <td style={{ border: B, padding: '6px', verticalAlign: 'top', fontSize: '9pt' }}>
+          {/* 40% = colspan 4 */}
+          <td colSpan={4} style={{ border: B, padding: '6px', verticalAlign: 'top', fontSize: '9pt' }}>
             Notes:
           </td>
         </tr>

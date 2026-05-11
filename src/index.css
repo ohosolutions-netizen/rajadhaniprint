@@ -23,13 +23,6 @@ body {
 }
 
 /* Screen: show pages as cards */
-.invoice-document {
-  counter-reset: invoice-page;
-}
-
-.invoice-copy-set {
-  counter-reset: invoice-page;
-}
 
 .a4-page {
   width: 210mm;
@@ -57,9 +50,7 @@ body {
   pointer-events: none;
 }
 
-.a4-page::after {
-  counter-increment: invoice-page;
-  content: "Page " counter(invoice-page);
+.page-number-label {
   position: absolute;
   left: 50%;
   bottom: 6px;
@@ -72,6 +63,7 @@ body {
   background: #fff;
   padding: 1px 3px;
   z-index: 2;
+  white-space: nowrap;
 }
 
 .invoice-page-content {
@@ -97,14 +89,10 @@ body {
     page-break-after: auto;
     break-after: auto;
   }
-  .a4-page::after {
-    left: 50%;
+  .page-number-label {
     bottom: 10px;
-    transform: translateX(-50%);
     font-size: 6pt;
     color: #000;
-    background: #fff;
-    padding: 1px 3px;
   }
   .a4-page::before {
     height: 26px;

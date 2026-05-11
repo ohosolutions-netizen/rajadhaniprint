@@ -37,6 +37,7 @@ const CREATOR_FIELDS = [
   'Tax',
   'Round_Off',
   'Bill_Amount',
+  'Place_of_Supply',
   'IRN_Number',
   'E_invoice_ID',
   'E_Invoice_QR',

@@ -25,7 +25,7 @@ function cleanCustomerName(name, ...addresses) {
 
 export default function InvoiceHeader({ data, copyLabel, invoiceId }) {
   const {
-    cusName, BillingAddress, ShippingAddress, phone, gstnum,
+    cusName, BillingAddress, ShippingAddress, phone, gstnum, stateCode,
     invoicenum, invdate, billtype, invtype, transport, agentName, remark,
     marginTop = '116px',
   } = { ...data, ...data };
@@ -43,7 +43,7 @@ export default function InvoiceHeader({ data, copyLabel, invoiceId }) {
     <table className="details-table" style={{ width: '100%', marginTop: data.marginTop || '116px', border: '1px solid #000' }}>
       <tbody>
         <tr>
-          <td className="header-party-cell" style={{ width: '37%', border: '1px solid #000' }}>
+          <td className="header-party-cell" style={{ width: '37%', border: '1px solid #000', position: 'relative', paddingBottom: '36px' }}>
             <div className="header-section-title">Bill To:</div>
             <div className="header-party-name">{displayCustomerName || cusName}</div>
             <div className="header-wrap-text">
@@ -55,8 +55,11 @@ export default function InvoiceHeader({ data, copyLabel, invoiceId }) {
                 </React.Fragment>
               ))}
             </div>
-            <div><b>Phone:</b> {phone}</div>
-            <div><b>GSTIN:</b> {gstnum}</div>
+            <div style={{ position: 'absolute', bottom: '4px', left: '6px', right: '6px' }}>
+              <div><b>Phone:</b> {phone}</div>
+              <div><b>GSTIN:</b> {gstnum}</div>
+              {stateCode && <div><b>State Code:</b> <span style={{ fontWeight: 400 }}>{stateCode}</span></div>}
+            </div>
           </td>
           <td className="header-party-cell" style={{ width: '37%', border: '1px solid #000' }}>
             <div className="header-section-title">Ship To:</div>
@@ -76,7 +79,7 @@ export default function InvoiceHeader({ data, copyLabel, invoiceId }) {
               <tbody>
                 <tr>
                   <td style={{ borderRight: '1px solid black', borderBottom: '1px solid black' }}><b>INVOICE NO</b></td>
-                  <td style={{ fontWeight: 400, borderBottom: '1px solid black' }}>{invoicenum}</td>
+                  <td style={{ fontWeight: 700, borderBottom: '1px solid black' }}>{invoicenum}</td>
                 </tr>
                 <tr>
                   <td style={{ borderRight: '1px solid black', borderBottom: '1px solid black' }}><b>Date</b></td>

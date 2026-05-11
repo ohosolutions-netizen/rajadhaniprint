@@ -173,6 +173,7 @@ function buildInvoicePlan(lineItems, hsnList) {
 function renderPlannedPage({
   page, summaryData, copyLabel, invoiceId,
   isLastCopy, isLastPage, marginTop, pageKey,
+  pageNumber, totalPages,
 }) {
   const { items, suppressTotal, showTop, hsnSlice, showTerms, showHeader } = page;
   const { totalqty } = summaryData;
@@ -237,6 +238,7 @@ function renderPlannedPage({
   return (
     <div className="a4-page" key={pageKey}>
       {innerContent}
+      <div className="page-number-label">Page {pageNumber}/{totalPages}</div>
       {(!isLastCopy || !isLastPage) && <div className="page-break" />}
     </div>
   );
@@ -264,6 +266,7 @@ export function InvoiceCopy({ data, copyLabel, isLastCopy, invoiceId }) {
   };
 
   const plan = buildInvoicePlan(lineItems, hsnList);
+  const totalPages = plan.length;
 
   return (
     <>
@@ -277,6 +280,8 @@ export function InvoiceCopy({ data, copyLabel, isLastCopy, invoiceId }) {
           isLastPage: index === plan.length - 1,
           marginTop: HEADER_TOP_SPACE,
           pageKey: `${copyLabel}-page-${index + 1}`,
+          pageNumber: index + 1,
+          totalPages,
         })
       )}
     </>

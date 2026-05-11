@@ -62,11 +62,11 @@ export default function ItemsTable({
           {!suppressTotal && (
             <tr className="items-total-row">
               <td className="items-total-cell" style={totalRowCellStyle}></td>
-              <td className="items-total-cell" style={totalRowCellStyle}>Total</td>
+              <td className="items-total-cell" style={totalRowCellStyle}></td>
+              <td className="items-total-cell" style={{ ...totalRowCellStyle, textAlign: 'right', fontWeight: 'bold' }}>Total Qty</td>
               <td className="items-total-cell" style={totalRowCellStyle}></td>
               <td className="items-total-cell" style={totalRowCellStyle}></td>
-              <td className="items-total-cell" style={totalRowCellStyle}></td>
-              <td className="items-total-cell" style={{ ...totalRowCellStyle, textAlign: 'right' }}>{totalqty}</td>
+              <td className="items-total-cell" style={{ ...totalRowCellStyle, textAlign: 'right' }}>{totalqty} Pcs</td>
               <td className="items-total-cell" style={totalRowCellStyle}></td>
               <td className="items-total-cell" style={totalRowCellStyle}></td>
             </tr>

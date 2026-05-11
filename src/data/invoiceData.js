@@ -30,6 +30,7 @@ export const invoiceData = {
   // E-Invoice
   irn: "",
   ebill: "",
+  stateCode: "",
 
   // Line Items
   lineItems: [],
@@ -266,6 +267,7 @@ export function mapCreatorRecordToInvoice(record) {
     totaltax: totalTax,
     gross: grossAmount,
     roundOff: toNumber(record.Round_Off),
+    stateCode: getDisplayValue(record.Place_of_Supply),
     irn: getDisplayValue(pickFirstValue(
       record.IRN_Number,
       record.E_invoice_ID,
