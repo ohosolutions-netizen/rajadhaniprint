@@ -2,6 +2,14 @@ import React, { useState } from 'react';
 
 const B = '1px solid black';
 
+function formatIndianAmount(value) {
+  const number = Number(value) || 0;
+  return number.toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 export function SummaryTop({ data }) {
   const [qrFailed, setQrFailed] = useState(false);
   const {
@@ -81,7 +89,7 @@ export function SummaryTop({ data }) {
                       Bill Amount
                     </td>
                     <td style={{ textAlign: 'right', padding: '6px 10px', fontSize: '14pt', fontWeight: 'bold', border: 'none' }}>
-                      ₹{gross.toFixed(2)}
+                      ₹{formatIndianAmount(gross)}
                     </td>
                   </tr>
                 </tbody>

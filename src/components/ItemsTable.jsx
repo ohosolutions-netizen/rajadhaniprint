@@ -13,7 +13,7 @@ export default function ItemsTable({
   totalqty,
   fillerCount = 0,
   suppressTotal = false,
-  extendAfterTotal = false,
+  pushTotalToBottom = false, // when true, filler rows go BEFORE Total to pin it to the bottom
 }) {
   const totalRowCellStyle = baseTotalRowCellStyle;
 
@@ -35,29 +35,59 @@ export default function ItemsTable({
         <tbody>
           {lineItems.map((item, idx) => {
             const isLastDataRow = idx === lineItems.length - 1;
+            // When filler rows follow (pushTotalToBottom), last item has no bottom border
+            // (the filler rows continue the side borders seamlessly into the Total row).
             const itemCellBorderStyle = {
               borderLeft: borderStyle,
               borderRight: borderStyle,
               borderTop: 'none',
-              borderBottom: isLastDataRow ? borderStyle : 'none',
+              borderBottom: isLastDataRow && !pushTotalToBottom ? borderStyle : 'none',
             };
 
             return (
-            <tr key={idx} className="items-row">
-              <td className="items-cell" style={itemCellBorderStyle}>{item.sl}</td>
-              <td className="items-cell items-barcode" style={{ ...itemCellBorderStyle, fontWeight: 'bold' }}>
-                <div className="items-text-clip">{item.barcode}</div>
-              </td>
-              <td className="items-cell items-description" style={itemCellBorderStyle}>
-                <div className="items-text-clip">{item.itemName}</div>
-              </td>
-              <td className="items-cell" style={itemCellBorderStyle}>{item.hsnCode}</td>
-              <td className="items-cell" style={{ ...itemCellBorderStyle, textAlign: 'center' }}>{item.gst}</td>
-              <td className="items-cell" style={{ ...itemCellBorderStyle, textAlign: 'right' }}>{item.qty.toFixed(2)}</td>
-              <td className="items-cell" style={{ ...itemCellBorderStyle, textAlign: 'right' }}>{item.rate.toFixed(2)}</td>
-              <td className="items-cell" style={{ ...itemCellBorderStyle, textAlign: 'right' }}>{item.amount.toFixed(2)}</td>
-            </tr>
-          )})}
+              <tr key={idx} className="items-row">
+                <td className="items-cell" style={itemCellBorderStyle}>{item.sl}</td>
+                <td className="items-cell items-barcode" style={{ ...itemCellBorderStyle, fontWeight: 'bold' }}>
+                  <div className="items-text-clip">{item.barcode}</div>
+                </td>
+                <td className="items-cell items-description" style={itemCellBorderStyle}>
+                  <div className="items-text-clip">{item.itemName}</div>
+                </td>
+                <td className="items-cell" style={itemCellBorderStyle}>{item.hsnCode}</td>
+                <td className="items-cell" style={{ ...itemCellBorderStyle, textAlign: 'center' }}>{item.gst}</td>
+                <td className="items-cell" style={{ ...itemCellBorderStyle, textAlign: 'right' }}>{item.qty.toFixed(2)}</td>
+                <td className="items-cell" style={{ ...itemCellBorderStyle, textAlign: 'right' }}>{item.rate.toFixed(2)}</td>
+                <td className="items-cell" style={{ ...itemCellBorderStyle, textAlign: 'right' }}>{item.amount.toFixed(2)}</td>
+              </tr>
+            );
+          })}
+
+          {/* Filler rows BEFORE Total — push Total Qty row to the bottom of the page */}
+          {pushTotalToBottom && !suppressTotal && fillerCount > 0 &&
+            Array.from({ length: fillerCount }).map((_, i) => {
+              const preFillerStyle = {
+                borderLeft: borderStyle,
+                borderRight: borderStyle,
+                borderTop: 'none',
+                borderBottom: 'none', // Total row's thick top border acts as the cap
+              };
+              return (
+                <tr key={`pre-filler-${i}`} className="items-row">
+                  <td className="items-cell" style={preFillerStyle}>&nbsp;</td>
+                  <td className="items-cell" style={preFillerStyle}>&nbsp;</td>
+                  <td className="items-cell items-description" style={preFillerStyle}>
+                    <div className="items-text-clip">&nbsp;</div>
+                  </td>
+                  <td className="items-cell" style={preFillerStyle}>&nbsp;</td>
+                  <td className="items-cell" style={preFillerStyle}>&nbsp;</td>
+                  <td className="items-cell" style={preFillerStyle}>&nbsp;</td>
+                  <td className="items-cell" style={preFillerStyle}>&nbsp;</td>
+                  <td className="items-cell" style={preFillerStyle}>&nbsp;</td>
+                </tr>
+              );
+            })
+          }
+
           {/* Total row */}
           {!suppressTotal && (
             <tr className="items-total-row">
@@ -71,8 +101,9 @@ export default function ItemsTable({
               <td className="items-total-cell" style={totalRowCellStyle}></td>
             </tr>
           )}
-          {/* Filler rows */}
-          {suppressTotal &&
+
+          {/* Hidden filler rows — intermediate item pages only (fills page height, keeps borders) */}
+          {suppressTotal && fillerCount > 0 &&
             Array.from({ length: fillerCount }).map((_, i) => {
               const isLastFillerRow = i === fillerCount - 1;
               const fillerCellStyle = {
@@ -81,13 +112,8 @@ export default function ItemsTable({
                 borderTop: 'none',
                 borderBottom: isLastFillerRow ? borderStyle : 'none',
               };
-
               return (
-                <tr
-                  key={`filler-${i}`}
-                  className="items-row"
-                  style={suppressTotal ? { visibility: 'hidden' } : undefined}
-                >
+                <tr key={`filler-${i}`} className="items-row" style={{ visibility: 'hidden' }}>
                   <td className="items-cell" style={fillerCellStyle}>&nbsp;</td>
                   <td className="items-cell" style={fillerCellStyle}>&nbsp;</td>
                   <td className="items-cell items-description" style={fillerCellStyle}>
@@ -100,7 +126,8 @@ export default function ItemsTable({
                   <td className="items-cell" style={fillerCellStyle}>&nbsp;</td>
                 </tr>
               );
-            })}
+            })
+          }
         </tbody>
       </table>
     </div>

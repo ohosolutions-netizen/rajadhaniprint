@@ -278,7 +278,7 @@ td, th {
   min-height: 100%;
 }
 .summary-terms-anchor {
-  margin-top: auto;
+  margin-top: 0;
 }
 
 /* ── HSN table ── */

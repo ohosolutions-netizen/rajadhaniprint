@@ -10,7 +10,6 @@ import { buildHsnList, numberToWords } from '../data/invoiceData';
 const ITEM_ONLY_PAGE_SIZE = 44;
 
 // Conservative content capacity for a non-item page (post-items / summary / HSN / terms).
-// Actual measured capacity is ~49 units; 44 is deliberately conservative so we never overflow.
 const CONTENT_PAGE_UNITS = 44;
 
 // Height reserved for the pre-printed letterhead strip (margin-top on the header table).
@@ -45,27 +44,27 @@ function chunkLineItems(lineItems, chunkSize) {
 /**
  * Builds a sequential list of page descriptors for one invoice copy.
  *
- * Sections are placed in order, one after the other, on the current page.
- * When a section (or the minimum useful fragment of it) does not fit in the
- * remaining space, a new page is started.
- *
- *   1. Line items  – one or more item pages; last page shows the Total row.
- *   2. Summary Top – fixed height (SUMMARY_UNITS).  Placed on the last item
- *      page if spare ≥ SUMMARY_UNITS, otherwise starts a new summary page.
- *   3. HSN table   – dynamic, may split freely across pages.  The header is
- *      repeated on each page that contains HSN rows.
- *   4. Terms & Conditions – fixed height (TERMS_UNITS).  Placed on the page
- *      where the last HSN row lands if spare ≥ TERMS_UNITS, otherwise placed
- *      at the top of a fresh page.
+ * Layout rules:
+ *   1. Line items span one or more pages. The last items page shows the Total row
+ *      pinned to the bottom via pre-Total filler rows unless Summary + ALL HSN + T&C
+ *      can fit directly after the last item row.
+ *   2. Summary is atomic. It is never split and never starts unless it fully fits.
+ *   3. If Summary starts on a page, then ALL HSN rows + T&C must also fit there.
+ *      Otherwise Summary, HSN and T&C all move to a fresh page.
+ *   4. HSN is the only spillable section. On each page, before placing HSN rows,
+ *      check whether remaining HSN rows + T&C fit together in the remaining space.
+ *      If yes, place them together. If not, place only the HSN rows that fit.
+ *   5. T&C is atomic and appears only once, immediately after the last HSN rows.
+ *      It is never split and never appears by itself mid-document.
  *
  * Page descriptor shape:
- *   items        {Array|null}  – line items (null for non-item pages)
- *   suppressTotal {boolean}    – hide Total row (intermediate item pages)
- *   showTop      {boolean}     – render Summary Top block
- *   hsnSlice     {Array}       – HSN rows to render on this page
- *   showTerms    {boolean}     – render Terms & Conditions block
- *   showHeader   {boolean}     – show full InvoiceHeader vs. letterhead spacer
- *                                (false only for HSN-continuation pages)
+ *   items         {Array|null}  – line items (null for non-item pages)
+ *   suppressTotal {boolean}     – hide Total row (intermediate item pages)
+ *   fillerRows    {number}      – empty rows before Total to push it to the bottom
+ *   showTop       {boolean}     – render Summary Top block
+ *   hsnSlice      {Array}       – HSN rows to render on this page
+ *   showTerms     {boolean}     – render Terms & Conditions block
+ *   showHeader    {boolean}     – show full InvoiceHeader
  */
 function buildInvoicePlan(lineItems, hsnList) {
   const chunks = chunkLineItems(lineItems, ITEM_ONLY_PAGE_SIZE);
@@ -73,11 +72,16 @@ function buildInvoicePlan(lineItems, hsnList) {
 
   const pages = [];
 
-  // ── Leading item pages (no Total row shown) ─────────────────────────────
+  // Total units needed if Summary + ALL HSN + T&C were on one page.
+  const hsnTotalUnits = hsnList.length > 0 ? HSN_HEADER_UNITS + hsnList.length : 0;
+  const allSummaryUnits = SUMMARY_UNITS + hsnTotalUnits + TERMS_UNITS;
+
+  // ── Leading item pages (no Total row) ───────────────────────────────────
   chunks.slice(0, -1).forEach((chunk) => {
     pages.push({
       items: chunk,
       suppressTotal: true,
+      fillerRows: 0,
       showTop: false,
       hsnSlice: [],
       showTerms: false,
@@ -87,11 +91,12 @@ function buildInvoicePlan(lineItems, hsnList) {
 
   // ── Last item page ───────────────────────────────────────────────────────
   const lastChunk = chunks[chunks.length - 1];
-  let spare = ITEM_ONLY_PAGE_SIZE - lastChunk.length; // row-units available below items+Total
+  let spare = ITEM_ONLY_PAGE_SIZE - lastChunk.length;
 
   let cur = {
     items: lastChunk,
     suppressTotal: false,
+    fillerRows: 0,
     showTop: false,
     hsnSlice: [],
     showTerms: false,
@@ -99,67 +104,86 @@ function buildInvoicePlan(lineItems, hsnList) {
   };
   pages.push(cur);
 
-  // ── Section 2: Summary Top ───────────────────────────────────────────────
-  if (spare >= SUMMARY_UNITS) {
+  // ── Step 1: Can Summary + ALL HSN + T&C fit on the last items page? ──────
+  if (spare >= allSummaryUnits) {
     cur.showTop = true;
-    spare -= SUMMARY_UNITS;
-  } else {
-    // Summary does not fit → start a dedicated post-items page.
-    spare = CONTENT_PAGE_UNITS - SUMMARY_UNITS;
-    cur = {
-      items: null,
-      suppressTotal: false,
-      showTop: true,
-      hsnSlice: [],
-      showTerms: false,
-      showHeader: true,
-    };
-    pages.push(cur);
+    if (hsnList.length > 0) cur.hsnSlice = [...hsnList];
+    cur.showTerms = true;
+    return pages; // no filler needed — Summary follows immediately after items
   }
 
-  // ── Section 3: HSN table (may split across pages) ───────────────────────
+  // Not enough room → push Total row to the page bottom via filler rows.
+  cur.fillerRows = Math.max(0, spare - 1); // spare - 1 accounts for the Total row itself
+
+  // ── Step 2: Fresh Summary page ───────────────────────────────────────────
+  // Summary starts here only if it can bring the full HSN + Terms set;
+  // otherwise HSN is paginated from this page onward and T&C is attached
+  // only to the last HSN slice that fits with it.
+  cur = {
+    items: null,
+    suppressTotal: false,
+    fillerRows: 0,
+    showTop: true,
+    hsnSlice: [],
+    showTerms: false,
+    showHeader: true,
+  };
+  pages.push(cur);
+
+  // Can Summary + ALL HSN + T&C fit on one page?
+  if (CONTENT_PAGE_UNITS >= allSummaryUnits) {
+    if (hsnList.length > 0) cur.hsnSlice = [...hsnList];
+    cur.showTerms = true;
+    return pages;
+  }
+
+  // Summary occupies the top; HSN rows start directly below it.
+  spare = CONTENT_PAGE_UNITS - SUMMARY_UNITS;
+
+  // ── Step 3: HSN pagination ───────────────────────────────────────────────
+  // Rule: on each page check if remaining HSN rows + T&C fit together.
+  //   Yes → place both; T&C follows the last HSN row.
+  //   No  → place as many HSN rows as fit (no T&C); overflow to next page.
+  // T&C is never placed by itself when HSN exists.
   const hsnRemaining = [...hsnList];
-  let hsnEverPlaced = false; // tracks whether any HSN row has been placed yet
+
+  if (hsnRemaining.length === 0) {
+    cur.showTerms = true;
+    return pages;
+  }
 
   while (hsnRemaining.length > 0) {
-    const minFit = HSN_HEADER_UNITS + 1; // need room for header + at least one row
-    if (spare >= minFit) {
-      // Place as many rows as fit on this page.
-      const rowCapacity = spare - HSN_HEADER_UNITS;
-      const take = Math.min(rowCapacity, hsnRemaining.length);
+    const unitsForAllRemaining = HSN_HEADER_UNITS + hsnRemaining.length + TERMS_UNITS;
+    if (spare >= unitsForAllRemaining) {
+      // All remaining HSN + T&C fit on this page.
+      cur.hsnSlice = [...hsnRemaining];
+      hsnRemaining.length = 0;
+      cur.showTerms = true;
+      break;
+    }
+
+    const rowCapacity = spare - HSN_HEADER_UNITS;
+    // When HSN + T&C do not fit together, keep at least one HSN row for a later
+    // page so the final page can end with "last HSN rows -> T&C".
+    const take = Math.max(0, Math.min(rowCapacity, hsnRemaining.length - 1));
+
+    if (take > 0) {
       cur.hsnSlice = hsnRemaining.splice(0, take);
-      spare -= HSN_HEADER_UNITS + take;
-      hsnEverPlaced = true;
-    } else {
-      // Not enough room even for one row → overflow to a new page.
-      // If HSN was already started on a previous page this is a "continuation"
-      // page (show only the letterhead spacer, no invoice-details header).
-      // If HSN hasn't started yet this is a fresh page (show full header).
+    }
+
+    if (hsnRemaining.length > 0) {
       cur = {
         items: null,
         suppressTotal: false,
+        fillerRows: 0,
         showTop: false,
         hsnSlice: [],
         showTerms: false,
-        showHeader: !hsnEverPlaced,
+        showHeader: true,
       };
       pages.push(cur);
       spare = CONTENT_PAGE_UNITS;
     }
-  }
-
-  // ── Section 4: Terms & Conditions ───────────────────────────────────────
-  if (spare >= TERMS_UNITS) {
-    cur.showTerms = true;
-  } else {
-    pages.push({
-      items: null,
-      suppressTotal: false,
-      showTop: false,
-      hsnSlice: [],
-      showTerms: true,
-      showHeader: true,
-    });
   }
 
   return pages;
@@ -167,9 +191,6 @@ function buildInvoicePlan(lineItems, hsnList) {
 
 // ── Page renderer ──────────────────────────────────────────────────────────
 
-/**
- * Renders one planned page as an `.a4-page` element.
- */
 function renderPlannedPage({
   page, summaryData, copyLabel, invoiceId,
   isLastCopy, isLastPage, marginTop, pageKey,
@@ -184,7 +205,7 @@ function renderPlannedPage({
   let innerContent;
 
   if (items !== null) {
-    // ── Item page (leading pages show no Total; last page shows Total + optional summary) ──
+    // ── Item page ──────────────────────────────────────────────────────────
     innerContent = (
       <div className="invoice-page-content">
         <InvoiceHeader
@@ -195,9 +216,9 @@ function renderPlannedPage({
         <ItemsTable
           lineItems={items}
           totalqty={totalqty}
-          fillerCount={0}
+          fillerCount={page.fillerRows ?? 0}
           suppressTotal={suppressTotal}
-          extendAfterTotal={false}
+          pushTotalToBottom={(page.fillerRows ?? 0) > 0}
         />
         {hasSummaryContent && (
           <SummarySection
@@ -210,9 +231,10 @@ function renderPlannedPage({
       </div>
     );
   } else {
-    // ── Post-item page (summary / HSN / terms) ───────────────────────────────
-    // summary-page-shell → flex column so Terms anchor (margin-top:auto) pins to bottom.
-    // terms-only-page-shell → overrides flex so Terms starts at the top of the section.
+    // ── Post-item page (summary / HSN / terms) ─────────────────────────────
+    // summary-page-shell: flex column, fills page height.
+    // summary-section-root inside it gets flex:1 → fills remaining space.
+    // summary-terms-anchor inside that has margin-top:auto → T&C pins to bottom.
     const shellClass = [
       'invoice-page-content',
       'summary-page-shell',
@@ -223,7 +245,7 @@ function renderPlannedPage({
       <div className={shellClass}>
         {showHeader
           ? <InvoiceHeader data={{ ...summaryData, marginTop }} copyLabel={copyLabel} invoiceId={invoiceId} />
-          : <div style={{ height: marginTop }} />  /* letterhead spacer for continuation pages */
+          : <div style={{ height: marginTop }} />
         }
         <SummarySection
           data={summaryData}
@@ -246,10 +268,6 @@ function renderPlannedPage({
 
 // ── InvoiceCopy ────────────────────────────────────────────────────────────
 
-/**
- * Renders one complete invoice copy set (Customer / Office / Transport copy).
- * Delegates all pagination decisions to buildInvoicePlan().
- */
 export function InvoiceCopy({ data, copyLabel, isLastCopy, invoiceId }) {
   const { lineItems } = data;
   const hsnList  = buildHsnList(lineItems);
