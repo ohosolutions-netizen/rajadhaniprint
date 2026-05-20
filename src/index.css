@@ -279,6 +279,37 @@ td, th {
 }
 .summary-terms-anchor {
   margin-top: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.summary-items-spacer {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.summary-empty-items-table th {
+  background-color: #eee;
+  text-align: center;
+  font-weight: bold;
+  padding: 3px 4px;
+  font-size: 9pt;
+  line-height: 1.05;
+}
+
+.summary-empty-items-table td {
+  padding: 0;
+}
+
+.summary-empty-items-body {
+  flex: 1 1 auto;
+}
+
+.summary-empty-items-body tbody,
+.summary-empty-items-body tr {
+  height: 100%;
 }
 
 /* ── HSN table ── */
@@ -301,12 +332,27 @@ td, th {
   flex: 1;
 }
 
-.terms-only-page-shell .summary-section-root {
+.terms-footer-page-shell .summary-section-root {
+  flex: 1;
+}
+
+.terms-footer-page-shell .summary-terms-anchor {
+  flex: 1 1 auto;
+  margin-top: 0;
+}
+
+.no-terms-page-shell .summary-section-root {
   flex: 0 0 auto;
   min-height: 0;
 }
 
+.terms-only-page-shell .summary-section-root {
+  flex: 1;
+  min-height: 100%;
+}
+
 .terms-only-page-shell .summary-terms-anchor {
+  flex: 1 1 auto;
   margin-top: 0;
 }
 

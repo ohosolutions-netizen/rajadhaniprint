@@ -16,12 +16,11 @@ const CONTENT_PAGE_UNITS = 44;
 const HEADER_TOP_SPACE = '141px';
 
 // Summary Top height in row-units.
-//   Row 1: bank details + amounts table  ≈ 130 px  → 9 units
-//   Row 2: E-Invoice QR + Scan QR + notes ≈ 120 px → 8 units
+//   Row 1: bank details + amounts table  ≈ 120 px  → 8 units
+//   Row 2: E-Invoice QR + Scan QR + notes ≈ 105 px → 7 units
 //   Borders / padding                              → 1 unit
-//   Safety margin                                  + 2 units
-//   Total                                          = 20 units
-const SUMMARY_UNITS = 20;
+//   Total                                          = 16 units
+const SUMMARY_UNITS = 16;
 
 // HSN table double-row header in row-units (2 header rows × 15 px ≈ 30 px ≈ 2 units).
 const HSN_HEADER_UNITS = 2;
@@ -146,9 +145,11 @@ function buildInvoicePlan(lineItems, hsnList) {
   //   No  → place as many HSN rows as fit (no T&C); overflow to next page.
   // T&C is never placed by itself when HSN exists.
   const hsnRemaining = [...hsnList];
+  let termsPlaced = false;
 
   if (hsnRemaining.length === 0) {
     cur.showTerms = true;
+    termsPlaced = true;
     return pages;
   }
 
@@ -159,13 +160,12 @@ function buildInvoicePlan(lineItems, hsnList) {
       cur.hsnSlice = [...hsnRemaining];
       hsnRemaining.length = 0;
       cur.showTerms = true;
+      termsPlaced = true;
       break;
     }
 
     const rowCapacity = spare - HSN_HEADER_UNITS;
-    // When HSN + T&C do not fit together, keep at least one HSN row for a later
-    // page so the final page can end with "last HSN rows -> T&C".
-    const take = Math.max(0, Math.min(rowCapacity, hsnRemaining.length - 1));
+    const take = Math.max(0, Math.min(rowCapacity, hsnRemaining.length));
 
     if (take > 0) {
       cur.hsnSlice = hsnRemaining.splice(0, take);
@@ -186,6 +186,18 @@ function buildInvoicePlan(lineItems, hsnList) {
     }
   }
 
+  if (!termsPlaced) {
+    pages.push({
+      items: null,
+      suppressTotal: false,
+      fillerRows: 0,
+      showTop: false,
+      hsnSlice: [],
+      showTerms: true,
+      showHeader: true,
+    });
+  }
+
   return pages;
 }
 
@@ -201,6 +213,8 @@ function renderPlannedPage({
 
   const hasSummaryContent = showTop || hsnSlice.length > 0 || showTerms;
   const isTermsOnly       = !showTop && hsnSlice.length === 0 && showTerms;
+  const hasNoTerms        = !showTerms;
+  const hasTermsFooter    = showTerms;
 
   let innerContent;
 
@@ -239,6 +253,8 @@ function renderPlannedPage({
       'invoice-page-content',
       'summary-page-shell',
       isTermsOnly ? 'terms-only-page-shell' : '',
+      hasNoTerms ? 'no-terms-page-shell' : '',
+      hasTermsFooter ? 'terms-footer-page-shell' : '',
     ].filter(Boolean).join(' ');
 
     innerContent = (

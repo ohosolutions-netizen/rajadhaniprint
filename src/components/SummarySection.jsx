@@ -10,6 +10,67 @@ function formatIndianAmount(value) {
   });
 }
 
+function EmptyItemsSpacer() {
+  return (
+    <div className="summary-items-spacer">
+      <table
+        className="summary-empty-items-table summary-empty-items-header"
+        style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}
+      >
+        <colgroup>
+          <col style={{ width: '5%' }} />
+          <col style={{ width: '8%' }} />
+          <col style={{ width: '41%' }} />
+          <col style={{ width: '8%' }} />
+          <col style={{ width: '5%' }} />
+          <col style={{ width: '8%' }} />
+          <col style={{ width: '9%' }} />
+          <col style={{ width: '14%' }} />
+        </colgroup>
+        <thead>
+          <tr>
+            <th style={{ border: B }}>Sl.</th>
+            <th style={{ border: B }}>Barcode</th>
+            <th style={{ border: B }}>Description of Goods</th>
+            <th style={{ border: B }}>HSN Code</th>
+            <th style={{ border: B }}>GST</th>
+            <th style={{ border: B }}>Quantity</th>
+            <th style={{ border: B }}>Rate</th>
+            <th style={{ border: B }}>Total</th>
+          </tr>
+        </thead>
+      </table>
+      <table
+        className="summary-empty-items-table summary-empty-items-body"
+        style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}
+      >
+        <colgroup>
+          <col style={{ width: '5%' }} />
+          <col style={{ width: '8%' }} />
+          <col style={{ width: '41%' }} />
+          <col style={{ width: '8%' }} />
+          <col style={{ width: '5%' }} />
+          <col style={{ width: '8%' }} />
+          <col style={{ width: '9%' }} />
+          <col style={{ width: '14%' }} />
+        </colgroup>
+        <tbody>
+          <tr>
+            <td style={{ borderLeft: B, borderRight: B, borderTop: 'none', borderBottom: B }} />
+            <td style={{ borderLeft: B, borderRight: B, borderTop: 'none', borderBottom: B }} />
+            <td style={{ borderLeft: B, borderRight: B, borderTop: 'none', borderBottom: B }} />
+            <td style={{ borderLeft: B, borderRight: B, borderTop: 'none', borderBottom: B }} />
+            <td style={{ borderLeft: B, borderRight: B, borderTop: 'none', borderBottom: B }} />
+            <td style={{ borderLeft: B, borderRight: B, borderTop: 'none', borderBottom: B }} />
+            <td style={{ borderLeft: B, borderRight: B, borderTop: 'none', borderBottom: B }} />
+            <td style={{ borderLeft: B, borderRight: B, borderTop: 'none', borderBottom: B }} />
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function SummaryTop({ data }) {
   const [qrFailed, setQrFailed] = useState(false);
   const {
@@ -229,6 +290,7 @@ export default function SummarySection({ data, hsnList, showTop = true, showTerm
       <HsnTable hsnList={hsnList} />
       {showTerms && (
         <div className="summary-terms-anchor">
+          <EmptyItemsSpacer />
           <TermsSection data={data} />
         </div>
       )}
