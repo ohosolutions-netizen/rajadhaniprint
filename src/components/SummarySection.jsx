@@ -10,22 +10,18 @@ function formatIndianAmount(value) {
   });
 }
 
-function EmptyItemsSpacer() {
+function EmptyItemsSpacer({ showHeader = false }) {
+  if (!showHeader) {
+    return <div className="summary-items-spacer" />;
+  }
+
+  const columns = ['5%', '8%', '41%', '8%', '5%', '8%', '9%', '14%'];
+
   return (
-    <div className="summary-items-spacer">
-      <table
-        className="summary-empty-items-table summary-empty-items-header"
-        style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}
-      >
+    <div className="summary-items-spacer summary-items-spacer-with-header">
+      <table className="items-table summary-empty-items-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
         <colgroup>
-          <col style={{ width: '5%' }} />
-          <col style={{ width: '8%' }} />
-          <col style={{ width: '41%' }} />
-          <col style={{ width: '8%' }} />
-          <col style={{ width: '5%' }} />
-          <col style={{ width: '8%' }} />
-          <col style={{ width: '9%' }} />
-          <col style={{ width: '14%' }} />
+          {columns.map((width, index) => <col key={index} style={{ width }} />)}
         </colgroup>
         <thead>
           <tr>
@@ -39,31 +35,11 @@ function EmptyItemsSpacer() {
             <th style={{ border: B }}>Total</th>
           </tr>
         </thead>
-      </table>
-      <table
-        className="summary-empty-items-table summary-empty-items-body"
-        style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}
-      >
-        <colgroup>
-          <col style={{ width: '5%' }} />
-          <col style={{ width: '8%' }} />
-          <col style={{ width: '41%' }} />
-          <col style={{ width: '8%' }} />
-          <col style={{ width: '5%' }} />
-          <col style={{ width: '8%' }} />
-          <col style={{ width: '9%' }} />
-          <col style={{ width: '14%' }} />
-        </colgroup>
         <tbody>
           <tr>
-            <td style={{ borderLeft: B, borderRight: B, borderTop: 'none', borderBottom: B }} />
-            <td style={{ borderLeft: B, borderRight: B, borderTop: 'none', borderBottom: B }} />
-            <td style={{ borderLeft: B, borderRight: B, borderTop: 'none', borderBottom: B }} />
-            <td style={{ borderLeft: B, borderRight: B, borderTop: 'none', borderBottom: B }} />
-            <td style={{ borderLeft: B, borderRight: B, borderTop: 'none', borderBottom: B }} />
-            <td style={{ borderLeft: B, borderRight: B, borderTop: 'none', borderBottom: B }} />
-            <td style={{ borderLeft: B, borderRight: B, borderTop: 'none', borderBottom: B }} />
-            <td style={{ borderLeft: B, borderRight: B, borderTop: 'none', borderBottom: B }} />
+            {columns.map((_, index) => (
+              <td key={index} className="summary-empty-items-cell">&nbsp;</td>
+            ))}
           </tr>
         </tbody>
       </table>
@@ -142,7 +118,7 @@ export function SummaryTop({ data }) {
               </tbody>
             </table>
             {/* Bill Amount pinned to bottom of cell */}
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, borderTop: B }}>
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <tbody>
                   <tr>
@@ -162,29 +138,13 @@ export function SummaryTop({ data }) {
         <tr>
           {/* 30% = colspan 3 */}
           <td colSpan={3} style={{ border: B, padding: '6px', verticalAlign: 'middle', textAlign: 'center' }}>
-            {(ebill && !qrFailed) ? (
+            {ebill && !qrFailed && (
               <img
                 src={ebill}
                 style={{ width: '96px', height: '96px', objectFit: 'contain', display: 'block', margin: '0 auto' }}
                 alt="E-Invoice QR"
                 onError={() => setQrFailed(true)}
               />
-            ) : (
-              <div
-                style={{
-                  width: '96px',
-                  height: '96px',
-                  border: '1px dashed #bbb',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '8pt',
-                  color: '#aaa',
-                  margin: '0 auto',
-                }}
-              >
-                E-Invoice QR
-              </div>
             )}
           </td>
 
@@ -254,9 +214,9 @@ export function HsnTable({ hsnList }) {
 export function TermsSection({ data }) {
   const { salesman, billcreate, companyLabel = 'For RAJADHANI FASHIONS' } = data;
   return (
-    <div style={{ borderTop: B, borderBottom: B, padding: '8px 10px', fontSize: '9pt' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '24px' }}>
-        <div style={{ flex: 1 }}>
+    <div style={{ borderTop: B, borderBottom: B, padding: '7px 10px', fontSize: '6.8pt' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: '24px', minHeight: '118px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
           <div style={{ fontWeight: 'bold', marginBottom: '3px' }}>Terms &amp; Conditions:</div>
           <div style={{ fontWeight: 'normal', lineHeight: 1.35 }}>
             1. Price are net<br />
@@ -264,19 +224,19 @@ export function TermsSection({ data }) {
             3. All disputes are subject to Ernakulam jurisdiction only.<br />
             4. All remittance are to be made in favour of RAJADHANI FASHIONS, Ernakulam<br />
             5. Payment within 15days. If not paid, interest will be charged at 21% annum<br />
-            6. Goods sold will not taken back.<br />
-            7. Damage goods will be taken back only for colour damages from 2 months pre- invoice only.
+            <b>6. Goods sold will not taken back.</b><br />
+            <b>7. Damage goods will be taken back only for colour damages from 2 months pre- invoice only.</b>
           </div>
+          <div style={{ marginTop: 'auto', paddingTop: '6px', fontWeight: 'bold' }}>Salesman:{salesman}</div>
         </div>
-        <div style={{ minWidth: '280px', textAlign: 'left', paddingLeft: '56px' }}>
-          <div style={{ fontWeight: 'bold' }}>{companyLabel}</div>
-        </div>
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: '24px', marginTop: '6px' }}>
-        <div style={{ fontWeight: 'bold' }}>Salesman:{salesman}</div>
-        <div style={{ minWidth: '280px', paddingLeft: '56px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left' }}>
-          <div>Authorized Signatory</div>
-          <div style={{ marginTop: '4px', fontWeight: 'bold' }}>Bill Created By: {billcreate}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+            {companyLabel}
+          </div>
+          <div>
+            <div>Authorized Signatory</div>
+            <div style={{ marginTop: '4px', fontWeight: 'bold' }}>Bill Created By: {billcreate}</div>
+          </div>
         </div>
       </div>
     </div>
@@ -284,13 +244,16 @@ export function TermsSection({ data }) {
 }
 
 export default function SummarySection({ data, hsnList, showTop = true, showTerms = true }) {
+  const shouldShowSpacer = showTerms;
+  const shouldShowSpacerHeader = showTerms && !showTop && (!hsnList || hsnList.length === 0);
+
   return (
     <div className="summary-section-root" style={{ border: B, marginTop: 0 }}>
       {showTop && <SummaryTop data={data} />}
       <HsnTable hsnList={hsnList} />
       {showTerms && (
         <div className="summary-terms-anchor">
-          <EmptyItemsSpacer />
+          {shouldShowSpacer && <EmptyItemsSpacer showHeader={shouldShowSpacerHeader} />}
           <TermsSection data={data} />
         </div>
       )}

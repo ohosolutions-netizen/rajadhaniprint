@@ -25,8 +25,9 @@ const SUMMARY_UNITS = 16;
 // HSN table double-row header in row-units (2 header rows × 15 px ≈ 30 px ≈ 2 units).
 const HSN_HEADER_UNITS = 2;
 
-// Terms & Conditions section height in row-units (~150 px / 15 px ≈ 10; +2 safety = 12).
-const TERMS_UNITS = 12;
+// Terms & Conditions section height in row-units after compact 6.8pt sizing.
+// Keep print-safe slack because browser print renders slightly taller than preview.
+const TERMS_UNITS = 10;
 
 // ── Chunk helper ───────────────────────────────────────────────────────────
 
@@ -220,8 +221,13 @@ function renderPlannedPage({
 
   if (items !== null) {
     // ── Item page ──────────────────────────────────────────────────────────
+    const itemShellClass = [
+      'invoice-page-content',
+      showTerms ? 'summary-page-shell terms-footer-page-shell item-terms-footer-page-shell' : '',
+    ].filter(Boolean).join(' ');
+
     innerContent = (
-      <div className="invoice-page-content">
+      <div className={itemShellClass}>
         <InvoiceHeader
           data={{ ...summaryData, marginTop }}
           copyLabel={copyLabel}
@@ -324,15 +330,16 @@ export function InvoiceCopy({ data, copyLabel, isLastCopy, invoiceId }) {
 
 // ── Invoice (top-level) ────────────────────────────────────────────────────
 
-export default function Invoice({ data, invoiceId, copyFilter = 'all' }) {
+export default function Invoice({ data, invoiceId, copyFilter = '3' }) {
   const allCopies = [
     { label: 'Customer Copy' },
     { label: 'Office Copy' },
     { label: 'Transport Copy' },
   ];
-  const copies = copyFilter === 'all'
-    ? allCopies
-    : allCopies.filter((c) => c.label === copyFilter);
+  const requestedCopyCount = Number.parseInt(copyFilter, 10);
+  const copies = Number.isFinite(requestedCopyCount)
+    ? allCopies.slice(0, Math.min(Math.max(requestedCopyCount, 1), allCopies.length))
+    : allCopies.filter((copy) => copy.label === copyFilter);
 
   return (
     <div className="invoice-document">

@@ -48,11 +48,17 @@ const CREATOR_FIELDS = [
 ].join(',');
 const SDK_WAIT_MS = 8000;
 const SDK_POLL_MS = 250;
+const COPY_COUNT_MODE = 'copy-count';
 const PRINT_OPTIONS = [
-  { value: 'all', label: 'All Copies' },
+  { value: COPY_COUNT_MODE, label: 'No of Copies' },
   { value: 'Customer Copy', label: 'Customer Copy' },
   { value: 'Office Copy', label: 'Office Copy' },
   { value: 'Transport Copy', label: 'Transport Copy' },
+];
+const COPY_COUNT_OPTIONS = [
+  { value: '1', label: '1 Copy' },
+  { value: '2', label: '2 Copies' },
+  { value: '3', label: '3 Copies' },
 ];
 
 function getInvoiceIdFromUrl() {
@@ -149,24 +155,27 @@ export default function App() {
   const [fetchedBilling, setFetchedBilling] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isPrintOptionsOpen, setIsPrintOptionsOpen] = useState(false);
-  const [selectedPrintOption, setSelectedPrintOption] = useState('all');
-  const [activePrintOption, setActivePrintOption] = useState('all');
+  const [selectedPrintOption, setSelectedPrintOption] = useState(COPY_COUNT_MODE);
+  const [selectedCopyCount, setSelectedCopyCount] = useState('2');
+  const [activePrintOption, setActivePrintOption] = useState('2');
   const [isPreparingPrint, setIsPreparingPrint] = useState(false);
 
   const handlePrint = () => {
-    setSelectedPrintOption('all');
+    setSelectedPrintOption(COPY_COUNT_MODE);
+    setSelectedCopyCount('2');
     setIsPrintOptionsOpen(true);
   };
 
   const handlePrintConfirm = () => {
-    setActivePrintOption(selectedPrintOption);
+    setActivePrintOption(selectedPrintOption === COPY_COUNT_MODE ? selectedCopyCount : selectedPrintOption);
     setIsPrintOptionsOpen(false);
     setIsPreparingPrint(true);
   };
 
   const handlePrintCancel = () => {
     setIsPrintOptionsOpen(false);
-    setSelectedPrintOption('all');
+    setSelectedPrintOption(COPY_COUNT_MODE);
+    setSelectedCopyCount('2');
   };
 
   useEffect(() => {
@@ -289,8 +298,9 @@ export default function App() {
   useEffect(() => {
     function handleAfterPrint() {
       setIsPreparingPrint(false);
-      setActivePrintOption('all');
-      setSelectedPrintOption('all');
+      setActivePrintOption('2');
+      setSelectedPrintOption(COPY_COUNT_MODE);
+      setSelectedCopyCount('2');
     }
 
     window.addEventListener('afterprint', handleAfterPrint);
@@ -315,16 +325,34 @@ export default function App() {
             <p>Select which copy set should be sent to the print window.</p>
             <div className="print-options-list">
               {PRINT_OPTIONS.map((option) => (
-                <label className="print-option-item" key={option.value}>
-                  <input
-                    type="radio"
-                    name="print-copy-option"
-                    value={option.value}
-                    checked={selectedPrintOption === option.value}
-                    onChange={(event) => setSelectedPrintOption(event.target.value)}
-                  />
-                  <span>{option.label}</span>
-                </label>
+                <React.Fragment key={option.value}>
+                  <label className="print-option-item">
+                    <input
+                      type="radio"
+                      name="print-copy-option"
+                      value={option.value}
+                      checked={selectedPrintOption === option.value}
+                      onChange={(event) => setSelectedPrintOption(event.target.value)}
+                    />
+                    <span>{option.label}</span>
+                  </label>
+                  {option.value === COPY_COUNT_MODE && selectedPrintOption === COPY_COUNT_MODE && (
+                    <div className="print-copy-count-options">
+                      {COPY_COUNT_OPTIONS.map((copyCountOption) => (
+                        <label className="print-option-item" key={copyCountOption.value}>
+                          <input
+                            type="radio"
+                            name="print-copy-count-option"
+                            value={copyCountOption.value}
+                            checked={selectedCopyCount === copyCountOption.value}
+                            onChange={(event) => setSelectedCopyCount(event.target.value)}
+                          />
+                          <span>{copyCountOption.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </React.Fragment>
               ))}
             </div>
             <div className="print-options-actions">
