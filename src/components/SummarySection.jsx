@@ -47,6 +47,23 @@ function EmptyItemsSpacer({ showHeader = false }) {
   );
 }
 
+const summaryRegularLabelStyle = {
+  padding: '4px 10px',
+  fontWeight: 700,
+  fontSize: '10pt',
+  lineHeight: 'normal',
+  textShadow: 'none',
+};
+
+const summaryRegularValueStyle = {
+  textAlign: 'right',
+  padding: '4px 10px',
+  fontWeight: 700,
+  fontSize: '10pt',
+  lineHeight: 'normal',
+  textShadow: 'none',
+};
+
 export function SummaryTop({ data }) {
   const [qrFailed, setQrFailed] = useState(false);
   const {
@@ -94,38 +111,38 @@ export function SummaryTop({ data }) {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <tbody>
                 <tr>
-                  <td style={{ padding: '4px 10px', fontWeight: 'bold', fontSize: '10pt' }}>Total</td>
-                  <td style={{ textAlign: 'right', padding: '4px 10px', fontWeight: 'bold', fontSize: '10pt' }}>{subtotal.toFixed(2)}</td>
+                  <td style={summaryRegularLabelStyle}>Total</td>
+                  <td style={summaryRegularValueStyle}>{subtotal.toFixed(2)}</td>
                 </tr>
                 {discount > 0 && (
                   <tr>
-                    <td style={{ padding: '4px 10px', fontWeight: 'bold', fontSize: '10pt' }}>Total Discount @{discount.toFixed(2)}%</td>
-                    <td style={{ textAlign: 'right', padding: '4px 10px', fontWeight: 'bold', fontSize: '10pt' }}>{totaldisc.toFixed(2)}</td>
+                    <td style={summaryRegularLabelStyle}>Total Discount @{discount.toFixed(2)}%</td>
+                    <td style={summaryRegularValueStyle}>{totaldisc.toFixed(2)}</td>
                   </tr>
                 )}
                 <tr>
-                  <td style={{ padding: '4px 10px', fontWeight: 'bold', fontSize: '10pt' }}>Total Taxable Value</td>
-                  <td style={{ textAlign: 'right', padding: '4px 10px', fontWeight: 'bold', fontSize: '10pt' }}>{taxvalue.toFixed(2)}</td>
+                  <td style={summaryRegularLabelStyle}>Total Taxable Value</td>
+                  <td style={summaryRegularValueStyle}>{taxvalue.toFixed(2)}</td>
                 </tr>
                 <tr>
-                  <td style={{ padding: '4px 10px', fontWeight: 'bold', fontSize: '10pt' }}>Total Tax Amount</td>
-                  <td style={{ textAlign: 'right', padding: '4px 10px', fontWeight: 'bold', fontSize: '10pt' }}>{totaltax.toFixed(2)}</td>
+                  <td style={summaryRegularLabelStyle}>Total Tax Amount</td>
+                  <td style={summaryRegularValueStyle}>{totaltax.toFixed(2)}</td>
                 </tr>
                 <tr>
-                  <td style={{ padding: '4px 10px', fontWeight: 'bold', fontSize: '10pt' }}>Round Off</td>
-                  <td style={{ textAlign: 'right', padding: '4px 10px', fontWeight: 'bold', fontSize: '10pt' }}>{roundOff.toFixed(2)}</td>
+                  <td style={summaryRegularLabelStyle}>Round Off</td>
+                  <td style={summaryRegularValueStyle}>{roundOff.toFixed(2)}</td>
                 </tr>
               </tbody>
             </table>
             {/* Bill Amount pinned to bottom of cell */}
-            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
+            <div style={{ position: 'absolute', bottom: '10px', left: 0, right: 0 }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <tbody>
                   <tr>
-                    <td style={{ padding: '6px 10px', fontWeight: 'bold', fontSize: '10pt', border: 'none' }}>
+                    <td style={{ padding: '6px 10px', fontWeight: 900, fontSize: '12pt', border: 'none', textShadow: '0.3px 0 0 currentColor' }}>
                       Bill Amount
                     </td>
-                    <td style={{ textAlign: 'right', padding: '6px 10px', fontSize: '14pt', fontWeight: 'bold', border: 'none' }}>
+                    <td style={{ textAlign: 'right', padding: '6px 10px', fontSize: '16pt', fontWeight: 900, border: 'none', textShadow: '0.45px 0 0 currentColor, -0.2px 0 0 currentColor' }}>
                       ₹{formatIndianAmount(gross)}
                     </td>
                   </tr>

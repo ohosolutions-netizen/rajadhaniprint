@@ -249,6 +249,13 @@ td, th {
   overflow: hidden;
   text-overflow: clip;
 }
+.barcode-text-strong {
+  font-weight: 900;
+  text-shadow:
+    0.45px 0 0 currentColor,
+    -0.2px 0 0 currentColor,
+    0 0.2px 0 currentColor;
+}
 .items-total-cell {
   background: #f3f3f3;
   font-weight: 400;

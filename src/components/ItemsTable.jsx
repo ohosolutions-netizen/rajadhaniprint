@@ -47,8 +47,8 @@ export default function ItemsTable({
             return (
               <tr key={idx} className="items-row">
                 <td className="items-cell" style={itemCellBorderStyle}>{item.sl}</td>
-                <td className="items-cell items-barcode" style={{ ...itemCellBorderStyle, fontWeight: 'bold' }}>
-                  <div className="items-text-clip">{item.barcode}</div>
+                <td className="items-cell items-barcode" style={{ ...itemCellBorderStyle, fontWeight: 900 }}>
+                  <div className="items-text-clip barcode-text-strong">{item.barcode}</div>
                 </td>
                 <td className="items-cell items-description" style={itemCellBorderStyle}>
                   <div className="items-text-clip">{item.itemName}</div>
