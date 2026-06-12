@@ -312,7 +312,7 @@ export default function App() {
       {/* Toolbar – hidden when printing */}
       <div className="toolbar no-print">
         <div>
-          <h1>Rajdhani Fashions</h1>
+          <h1>Rajadhani Fashions</h1>
           <span>Tax Invoice Preview{invoiceDetails?.invoicenum ? ` — ${invoiceDetails.invoicenum}` : ''}</span>
         </div>
         <button className="print-btn" onClick={handlePrint}>🖨 Print / Save PDF</button>
