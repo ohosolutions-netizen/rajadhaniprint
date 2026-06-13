@@ -264,7 +264,7 @@ export function HsnTable({ hsnList }) {
 export function TermsSection({ data }) {
   const { salesman, billcreate, companyLabel = 'For RAJADHANI FASHIONS' } = data;
   return (
-    <div style={{ borderTop: B, borderBottom: B, padding: '7px 10px', fontSize: '6.8pt' }}>
+    <div style={{ borderTop: 'none', borderRight: B, borderBottom: B, borderLeft: B, padding: '7px 10px', fontSize: '6.8pt' }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: '24px', minHeight: '118px' }}>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <div style={{ fontWeight: 'bold', marginBottom: '3px' }}>Terms &amp; Conditions:</div>
