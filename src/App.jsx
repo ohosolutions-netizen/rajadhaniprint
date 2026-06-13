@@ -48,6 +48,7 @@ const CREATOR_FIELDS = [
 ].join(',');
 const SDK_WAIT_MS = 8000;
 const SDK_POLL_MS = 250;
+const EINVOICE_RETRY_MS = 5000;
 const COPY_COUNT_MODE = 'copy-count';
 const PRINT_OPTIONS = [
   { value: COPY_COUNT_MODE, label: 'No of Copies' },
@@ -144,6 +145,13 @@ async function fetchInvoiceFromReport(creatorSdk, invoiceId) {
   return null;
 }
 
+function hasMissingEInvoiceDetails(invoice) {
+  return !invoice?.irn?.trim() || !invoice?.ebill?.trim();
+}
+
+function needsEInvoiceRetry(invoice) {
+  return invoice?.eInvoiceStatus?.trim().toLowerCase() === 'pushed' && hasMissingEInvoiceDetails(invoice);
+}
 
 export default function App() {
   const [invoiceId, setInvoiceId] = useState(() => getInvoiceIdFromUrl());
@@ -159,6 +167,7 @@ export default function App() {
   const [selectedCopyCount, setSelectedCopyCount] = useState('2');
   const [activePrintOption, setActivePrintOption] = useState('2');
   const [isPreparingPrint, setIsPreparingPrint] = useState(false);
+  const [isEInvoiceWarningOpen, setIsEInvoiceWarningOpen] = useState(false);
 
   const handlePrint = () => {
     setSelectedPrintOption(COPY_COUNT_MODE);
@@ -241,7 +250,7 @@ export default function App() {
           setSdkMode(`Fetching invoice ${resolvedInvoiceId} from report`);
         }
 
-        const fetched = await fetchInvoiceFromReport(creatorSdk, resolvedInvoiceId);
+        let fetched = await fetchInvoiceFromReport(creatorSdk, resolvedInvoiceId);
 
         if (!fetched?.record) {
           if (isActive) {
@@ -251,10 +260,32 @@ export default function App() {
           return;
         }
 
-        if (isActive) {
-          const mappedInvoice = mapCreatorRecordToInvoice(fetched.record);
+        let mappedInvoice = mapCreatorRecordToInvoice(fetched.record);
+        let retriedMissingEInvoice = false;
 
+        if (needsEInvoiceRetry(mappedInvoice)) {
+          retriedMissingEInvoice = true;
+          if (isActive) {
+            setSdkMode('Waiting 5 seconds for e-invoice details before trying again');
+          }
+
+          await new Promise((resolve) => window.setTimeout(resolve, EINVOICE_RETRY_MS));
+          if (!isActive) return;
+
+          try {
+            const retriedFetch = await fetchInvoiceFromReport(creatorSdk, resolvedInvoiceId);
+            if (retriedFetch?.record) {
+              fetched = retriedFetch;
+              mappedInvoice = mapCreatorRecordToInvoice(retriedFetch.record);
+            }
+          } catch (error) {
+            console.warn('E-invoice detail retry failed.', error);
+          }
+        }
+
+        if (isActive) {
           setInvoiceDetails(mappedInvoice);
+          setIsEInvoiceWarningOpen(retriedMissingEInvoice && hasMissingEInvoiceDetails(mappedInvoice));
           setFetchedCustomer(
             fetched.record.Customer?.display_value ||
             fetched.record.Customer?.zc_display_value ||
@@ -363,12 +394,28 @@ export default function App() {
         </div>
       )}
 
+      {isEInvoiceWarningOpen && (
+        <div className="print-options-backdrop no-print">
+          <div className="print-options-modal" role="alertdialog" aria-modal="true" aria-labelledby="einvoice-warning-title">
+            <h2 id="einvoice-warning-title">No E-Invoice details available</h2>
+            <p>The e-invoice status is pushed, but the IRN number or QR link is not available.</p>
+            <div className="print-options-actions">
+              <button type="button" className="print-btn" onClick={() => setIsEInvoiceWarningOpen(false)}>OK</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Invoice Pages */}
       {isLoading ? (
         <div className="loading-state">
           <div className="loading-state-card">
             <h2>Loading invoice...</h2>
-            <p>Please wait while the latest data is fetched from Zoho Creator.</p>
+            <p>
+              {sdkMode.startsWith('Waiting 5 seconds for e-invoice')
+                ? sdkMode
+                : 'Please wait while the latest data is fetched from Zoho Creator.'}
+            </p>
           </div>
         </div>
       ) : invoiceDetails ? (

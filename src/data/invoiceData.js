@@ -28,6 +28,7 @@ export const invoiceData = {
   roundOff: 0,
 
   // E-Invoice
+  eInvoiceStatus: "",
   irn: "",
   ebill: "",
   stateCode: "",
@@ -268,6 +269,12 @@ export function mapCreatorRecordToInvoice(record) {
     gross: grossAmount,
     roundOff: toNumber(record.Round_Off),
     stateCode: getDisplayValue(record.Place_of_Supply),
+    eInvoiceStatus: getDisplayValue(getRecordValueByAliases(record, [
+      'eInvoice_Status',
+      'E_Invoice_Status',
+      'EInvoice_Status',
+      'EInvoiceStatus',
+    ])),
     irn: getDisplayValue(pickFirstValue(
       record.IRN_Number,
       record.E_invoice_ID,
