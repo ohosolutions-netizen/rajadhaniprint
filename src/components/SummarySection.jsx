@@ -60,7 +60,7 @@ function EmptyItemsSpacer({ showHeader = false, showTotal = false, totalqty = 0 
 const summaryRegularLabelStyle = {
   padding: '4px 10px',
   fontWeight: 700,
-  fontSize: '10pt',
+  fontSize: '9pt',
   lineHeight: 'normal',
   textShadow: 'none',
 };
@@ -69,7 +69,7 @@ const summaryRegularValueStyle = {
   textAlign: 'right',
   padding: '4px 10px',
   fontWeight: 700,
-  fontSize: '10pt',
+  fontSize: '9pt',
   lineHeight: 'normal',
   textShadow: 'none',
 };
@@ -99,11 +99,21 @@ export function SummaryTop({ data }) {
       </colgroup>
       <tbody>
         <tr>
-          <td colSpan={5} style={{ border: B, padding: '8px 6px', verticalAlign: 'top' }}>
-            <div style={{ fontSize: '10pt', paddingBottom: '5px', borderBottom: '1px solid #bbb', marginBottom: '8px', fontWeight: 'bold' }}>
+          <td
+            colSpan={6}
+            style={{
+              borderTop: B,
+              borderBottom: B,
+              borderLeft: B,
+              borderRight: 'none',
+              padding: '8px 6px',
+              verticalAlign: 'top',
+            }}
+          >
+            <div style={{ fontSize: '9pt', paddingBottom: '5px', borderBottom: '1px solid #bbb', marginBottom: '8px', fontWeight: 'bold' }}>
               Rupees {grossEng} Only
             </div>
-            <div style={{ fontSize: '9pt', lineHeight: 1.35, fontWeight: 'bold' }}>
+            <div style={{ fontSize: '8.1pt', lineHeight: 1.35, fontWeight: 'bold' }}>
               Our Bank Details<br />
               SOUTH INDIAN BANK LTD<br />
               A/c No:0024083000003067<br />
@@ -111,13 +121,25 @@ export function SummaryTop({ data }) {
               BRANCH:MARKET ROAD, ERNAKULAM
             </div>
             {irn && (
-              <div style={{ marginTop: '4px', fontSize: '7.5pt', lineHeight: 1.2, wordBreak: 'break-all' }}>
+              <div style={{ marginTop: '4px', fontSize: '6.75pt', lineHeight: 1.2, wordBreak: 'break-all' }}>
                 IRN: {irn}
               </div>
             )}
           </td>
 
-          <td colSpan={5} style={{ border: B, verticalAlign: 'top', padding: 0, position: 'relative', paddingBottom: '42px' }}>
+          <td
+            colSpan={4}
+            style={{
+              borderTop: B,
+              borderBottom: B,
+              borderLeft: 'none',
+              borderRight: B,
+              verticalAlign: 'top',
+              padding: 0,
+              position: 'relative',
+              paddingBottom: '42px',
+            }}
+          >
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <tbody>
                 <tr>
@@ -149,10 +171,10 @@ export function SummaryTop({ data }) {
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <tbody>
                   <tr>
-                    <td style={{ padding: '6px 10px', fontWeight: 900, fontSize: '12pt', border: 'none', textShadow: '0.3px 0 0 currentColor' }}>
+                    <td style={{ padding: '6px 10px', fontWeight: 900, fontSize: '10.8pt', border: 'none', textShadow: '0.3px 0 0 currentColor' }}>
                       Bill Amount
                     </td>
-                    <td style={{ textAlign: 'right', padding: '6px 10px', fontSize: '16pt', fontWeight: 900, border: 'none', textShadow: '0.45px 0 0 currentColor, -0.2px 0 0 currentColor' }}>
+                    <td style={{ textAlign: 'right', padding: '6px 10px', fontSize: '14.4pt', fontWeight: 900, border: 'none', textShadow: '0.45px 0 0 currentColor, -0.2px 0 0 currentColor' }}>
                       ₹{formatIndianAmount(gross)}
                     </td>
                   </tr>
@@ -163,30 +185,30 @@ export function SummaryTop({ data }) {
         </tr>
 
         <tr>
-          {/* 30% = colspan 3 */}
-          <td colSpan={3} style={{ border: B, padding: '6px', verticalAlign: 'middle', textAlign: 'center' }}>
+          {/* Wide E-Invoice QR section */}
+          <td colSpan={5} style={{ border: B, padding: '6px 10px', verticalAlign: 'top', textAlign: 'left' }}>
             {ebill && !qrFailed && (
               <img
                 src={ebill}
-                style={{ width: '96px', height: '96px', objectFit: 'contain', display: 'block', margin: '0 auto' }}
+                style={{ width: '112px', height: '112px', objectFit: 'contain', display: 'block' }}
                 alt="E-Invoice QR"
                 onError={() => setQrFailed(true)}
               />
             )}
           </td>
 
-          {/* 30% = colspan 3 */}
-          <td colSpan={3} style={{ border: B, textAlign: 'center', padding: '6px', verticalAlign: 'middle' }}>
+          {/* Narrow Scan and Pay section */}
+          <td colSpan={2} style={{ border: B, textAlign: 'center', padding: '6px', verticalAlign: 'top' }}>
             <img
               src="https://qrcode.tec-it.com/API/QRCode?data=upi%3A%2F%2Fpay%3Fpa%3Dpaytmqr1nxn70zbes%40paytm%26pn%3DPaytm&size=5"
               alt="Scan and Pay QR"
-              style={{ width: '96px', height: '96px', display: 'block', margin: '0 auto', objectFit: 'contain' }}
+              style={{ width: '112px', height: '112px', display: 'block', margin: '0 auto', objectFit: 'contain' }}
             />
             <p style={{ margin: '2px 0 0 0', fontSize: '8pt', fontWeight: 'bold' }}>Scan and Pay</p>
           </td>
 
-          {/* 40% = colspan 4 */}
-          <td colSpan={4} style={{ border: B, padding: '6px', verticalAlign: 'top', fontSize: '9pt' }}>
+          {/* Notes section */}
+          <td colSpan={3} style={{ border: B, padding: '6px', verticalAlign: 'top', fontSize: '9pt' }}>
             Notes:
           </td>
         </tr>
@@ -284,7 +306,7 @@ export default function SummarySection({
   return (
     <div
       className="summary-section-root"
-      style={{ border: B, borderTop: continueItemsTable ? 'none' : B, marginTop: 0 }}
+      style={{ border: continueItemsTable ? 'none' : B, marginTop: 0 }}
     >
       {shouldShowSpacer && (
         <EmptyItemsSpacer
