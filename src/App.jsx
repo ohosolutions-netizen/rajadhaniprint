@@ -149,8 +149,12 @@ function hasMissingEInvoiceDetails(invoice) {
   return !invoice?.irn?.trim() || !invoice?.ebill?.trim();
 }
 
-function needsEInvoiceRetry(invoice) {
-  return invoice?.eInvoiceStatus?.trim().toLowerCase() === 'pushed' && hasMissingEInvoiceDetails(invoice);
+function hasGstNumber(invoice) {
+  return Boolean(invoice?.gstnum?.trim());
+}
+
+function isEInvoicePushed(invoice) {
+  return invoice?.eInvoiceStatus?.trim().toLowerCase() === 'pushed';
 }
 
 export default function App() {
@@ -167,7 +171,7 @@ export default function App() {
   const [selectedCopyCount, setSelectedCopyCount] = useState('2');
   const [activePrintOption, setActivePrintOption] = useState('2');
   const [isPreparingPrint, setIsPreparingPrint] = useState(false);
-  const [isEInvoiceWarningOpen, setIsEInvoiceWarningOpen] = useState(false);
+  const [eInvoiceError, setEInvoiceError] = useState(null);
 
   const handlePrint = () => {
     setSelectedPrintOption(COPY_COUNT_MODE);
@@ -261,10 +265,21 @@ export default function App() {
         }
 
         let mappedInvoice = mapCreatorRecordToInvoice(fetched.record);
-        let retriedMissingEInvoice = false;
 
-        if (needsEInvoiceRetry(mappedInvoice)) {
-          retriedMissingEInvoice = true;
+        if (hasGstNumber(mappedInvoice) && !isEInvoicePushed(mappedInvoice)) {
+          if (isActive) {
+            setInvoiceDetails(null);
+            setEInvoiceError({
+              title: 'E-Invoice not pushed',
+              message: 'This GST invoice cannot be previewed until the e-invoice status is Pushed.',
+            });
+            setSdkMode('E-invoice status is not pushed');
+            setIsLoading(false);
+          }
+          return;
+        }
+
+        if (hasGstNumber(mappedInvoice) && hasMissingEInvoiceDetails(mappedInvoice)) {
           if (isActive) {
             setSdkMode('Waiting 5 seconds for e-invoice details before trying again');
           }
@@ -281,11 +296,24 @@ export default function App() {
           } catch (error) {
             console.warn('E-invoice detail retry failed.', error);
           }
+
+          if (hasMissingEInvoiceDetails(mappedInvoice)) {
+            if (isActive) {
+              setInvoiceDetails(null);
+              setEInvoiceError({
+                title: 'E-Invoice details are not fetched',
+                message: 'The IRN number or QR link is still unavailable after trying again.',
+              });
+              setSdkMode('E-invoice details were not fetched');
+              setIsLoading(false);
+            }
+            return;
+          }
         }
 
         if (isActive) {
           setInvoiceDetails(mappedInvoice);
-          setIsEInvoiceWarningOpen(retriedMissingEInvoice && hasMissingEInvoiceDetails(mappedInvoice));
+          setEInvoiceError(null);
           setFetchedCustomer(
             fetched.record.Customer?.display_value ||
             fetched.record.Customer?.zc_display_value ||
@@ -346,7 +374,7 @@ export default function App() {
           <h1>Rajadhani Fashions</h1>
           <span>Tax Invoice Preview{invoiceDetails?.invoicenum ? ` — ${invoiceDetails.invoicenum}` : ''}</span>
         </div>
-        <button className="print-btn" onClick={handlePrint}>🖨 Print / Save PDF</button>
+        <button className="print-btn" onClick={handlePrint} disabled={isLoading || !invoiceDetails}>🖨 Print / Save PDF</button>
       </div>
 
       {isPrintOptionsOpen && (
@@ -394,13 +422,13 @@ export default function App() {
         </div>
       )}
 
-      {isEInvoiceWarningOpen && (
+      {eInvoiceError && (
         <div className="print-options-backdrop no-print">
           <div className="print-options-modal" role="alertdialog" aria-modal="true" aria-labelledby="einvoice-warning-title">
-            <h2 id="einvoice-warning-title">No E-Invoice details available</h2>
-            <p>The e-invoice status is pushed, but the IRN number or QR link is not available.</p>
+            <h2 id="einvoice-warning-title">{eInvoiceError.title}</h2>
+            <p>{eInvoiceError.message}</p>
             <div className="print-options-actions">
-              <button type="button" className="print-btn" onClick={() => setIsEInvoiceWarningOpen(false)}>OK</button>
+              <button type="button" className="print-btn" onClick={() => setEInvoiceError(null)}>OK</button>
             </div>
           </div>
         </div>

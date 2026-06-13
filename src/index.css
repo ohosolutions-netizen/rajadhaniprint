@@ -448,6 +448,11 @@ td, th {
 }
 .print-btn:hover { opacity: 0.88; transform: translateY(-1px); }
 .print-btn:active { transform: translateY(0); }
+.print-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  transform: none;
+}
 
 .print-options-backdrop {
   position: fixed;
