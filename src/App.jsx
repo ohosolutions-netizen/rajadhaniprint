@@ -153,10 +153,6 @@ function hasGstNumber(invoice) {
   return Boolean(invoice?.gstnum?.trim());
 }
 
-function isEInvoicePushed(invoice) {
-  return invoice?.eInvoiceStatus?.trim().toLowerCase() === 'pushed';
-}
-
 export default function App() {
   const [invoiceId, setInvoiceId] = useState(() => getInvoiceIdFromUrl());
   const [sdkMode, setSdkMode] = useState(() =>
@@ -265,19 +261,6 @@ export default function App() {
         }
 
         let mappedInvoice = mapCreatorRecordToInvoice(fetched.record);
-
-        if (hasGstNumber(mappedInvoice) && !isEInvoicePushed(mappedInvoice)) {
-          if (isActive) {
-            setInvoiceDetails(null);
-            setEInvoiceError({
-              title: 'E-Invoice not pushed',
-              message: 'This GST invoice cannot be previewed until the e-invoice status is Pushed.',
-            });
-            setSdkMode('E-invoice status is not pushed');
-            setIsLoading(false);
-          }
-          return;
-        }
 
         if (hasGstNumber(mappedInvoice) && hasMissingEInvoiceDetails(mappedInvoice)) {
           if (isActive) {

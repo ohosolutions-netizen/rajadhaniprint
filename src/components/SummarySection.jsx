@@ -10,11 +10,7 @@ function formatIndianAmount(value) {
   });
 }
 
-function EmptyItemsSpacer({ showHeader = false }) {
-  if (!showHeader) {
-    return <div className="summary-items-spacer" />;
-  }
-
+function EmptyItemsSpacer({ showHeader = false, showTotal = false, totalqty = 0 }) {
   const columns = ['5%', '8%', '41%', '8%', '5%', '8%', '9%', '14%'];
 
   return (
@@ -23,24 +19,38 @@ function EmptyItemsSpacer({ showHeader = false }) {
         <colgroup>
           {columns.map((width, index) => <col key={index} style={{ width }} />)}
         </colgroup>
-        <thead>
-          <tr>
-            <th style={{ border: B }}>Sl.</th>
-            <th style={{ border: B }}>Barcode</th>
-            <th style={{ border: B }}>Description of Goods</th>
-            <th style={{ border: B }}>HSN Code</th>
-            <th style={{ border: B }}>GST</th>
-            <th style={{ border: B }}>Quantity</th>
-            <th style={{ border: B }}>Rate</th>
-            <th style={{ border: B }}>Total</th>
-          </tr>
-        </thead>
+        {showHeader && (
+          <thead>
+            <tr>
+              <th style={{ border: B }}>Sl.</th>
+              <th style={{ border: B }}>Barcode</th>
+              <th style={{ border: B }}>Description of Goods</th>
+              <th style={{ border: B }}>HSN Code</th>
+              <th style={{ border: B }}>GST</th>
+              <th style={{ border: B }}>Quantity</th>
+              <th style={{ border: B }}>Rate</th>
+              <th style={{ border: B }}>Total</th>
+            </tr>
+          </thead>
+        )}
         <tbody>
-          <tr>
+          <tr className="summary-empty-items-fill-row">
             {columns.map((_, index) => (
               <td key={index} className="summary-empty-items-cell">&nbsp;</td>
             ))}
           </tr>
+          {showTotal && (
+            <tr className="items-total-row summary-continuation-total">
+              <td className="items-total-cell"></td>
+              <td className="items-total-cell"></td>
+              <td className="items-total-cell" style={{ textAlign: 'right', fontWeight: 'bold' }}>Total Qty</td>
+              <td className="items-total-cell"></td>
+              <td className="items-total-cell"></td>
+              <td className="items-total-cell" style={{ textAlign: 'right' }}>{totalqty} Pcs</td>
+              <td className="items-total-cell"></td>
+              <td className="items-total-cell"></td>
+            </tr>
+          )}
         </tbody>
       </table>
     </div>
@@ -192,6 +202,7 @@ export function HsnTable({ hsnList }) {
 
   return (
     <table
+      className="hsn-table"
       cellSpacing="0"
       cellPadding="0"
       style={{ borderCollapse: 'collapse', width: '100%', textAlign: 'center', marginTop: 0 }}
@@ -260,17 +271,32 @@ export function TermsSection({ data }) {
   );
 }
 
-export default function SummarySection({ data, hsnList, showTop = true, showTerms = true }) {
+export default function SummarySection({
+  data,
+  hsnList,
+  showTop = true,
+  showTerms = true,
+  showEmptyItemsHeader = false,
+  continueItemsTable = false,
+}) {
   const shouldShowSpacer = showTerms;
-  const shouldShowSpacerHeader = showTerms && !showTop && (!hsnList || hsnList.length === 0);
 
   return (
-    <div className="summary-section-root" style={{ border: B, marginTop: 0 }}>
+    <div
+      className="summary-section-root"
+      style={{ border: B, borderTop: continueItemsTable ? 'none' : B, marginTop: 0 }}
+    >
+      {shouldShowSpacer && (
+        <EmptyItemsSpacer
+          showHeader={showEmptyItemsHeader}
+          showTotal={continueItemsTable}
+          totalqty={data.totalqty}
+        />
+      )}
       {showTop && <SummaryTop data={data} />}
       <HsnTable hsnList={hsnList} />
       {showTerms && (
         <div className="summary-terms-anchor">
-          {shouldShowSpacer && <EmptyItemsSpacer showHeader={shouldShowSpacerHeader} />}
           <TermsSection data={data} />
         </div>
       )}

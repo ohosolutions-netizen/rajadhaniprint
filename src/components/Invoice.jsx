@@ -22,8 +22,11 @@ const HEADER_TOP_SPACE = '141px';
 //   Total                                          = 16 units
 const SUMMARY_UNITS = 16;
 
-// HSN table double-row header in row-units (2 header rows × 15 px ≈ 30 px ≈ 2 units).
+// HSN table double-row header in row-units.
 const HSN_HEADER_UNITS = 2;
+
+// Compact HSN rows render noticeably shorter than item rows.
+const HSN_ROW_UNITS = 0.7;
 
 // Terms & Conditions section height in row-units after compact 6.8pt sizing.
 // Keep print-safe slack because browser print renders slightly taller than preview.
@@ -73,7 +76,9 @@ function buildInvoicePlan(lineItems, hsnList) {
   const pages = [];
 
   // Total units needed if Summary + ALL HSN + T&C were on one page.
-  const hsnTotalUnits = hsnList.length > 0 ? HSN_HEADER_UNITS + hsnList.length : 0;
+  const hsnTotalUnits = hsnList.length > 0
+    ? HSN_HEADER_UNITS + (hsnList.length * HSN_ROW_UNITS)
+    : 0;
   const allSummaryUnits = SUMMARY_UNITS + hsnTotalUnits + TERMS_UNITS;
 
   // ── Leading item pages (no Total row) ───────────────────────────────────
@@ -155,7 +160,7 @@ function buildInvoicePlan(lineItems, hsnList) {
   }
 
   while (hsnRemaining.length > 0) {
-    const unitsForAllRemaining = HSN_HEADER_UNITS + hsnRemaining.length + TERMS_UNITS;
+    const unitsForAllRemaining = HSN_HEADER_UNITS + (hsnRemaining.length * HSN_ROW_UNITS) + TERMS_UNITS;
     if (spare >= unitsForAllRemaining) {
       // All remaining HSN + T&C fit on this page.
       cur.hsnSlice = [...hsnRemaining];
@@ -165,7 +170,7 @@ function buildInvoicePlan(lineItems, hsnList) {
       break;
     }
 
-    const rowCapacity = spare - HSN_HEADER_UNITS;
+    const rowCapacity = Math.floor((spare - HSN_HEADER_UNITS) / HSN_ROW_UNITS);
     const take = Math.max(0, Math.min(rowCapacity, hsnRemaining.length));
 
     if (take > 0) {
@@ -237,8 +242,9 @@ function renderPlannedPage({
           lineItems={items}
           totalqty={totalqty}
           fillerCount={page.fillerRows ?? 0}
-          suppressTotal={suppressTotal}
+          suppressTotal={suppressTotal || (hasSummaryContent && showTerms)}
           pushTotalToBottom={(page.fillerRows ?? 0) > 0}
+          hasFollowingSummary={hasSummaryContent}
         />
         {hasSummaryContent && (
           <SummarySection
@@ -246,6 +252,8 @@ function renderPlannedPage({
             hsnList={hsnSlice}
             showTop={showTop}
             showTerms={showTerms}
+            showEmptyItemsHeader={false}
+            continueItemsTable={showTerms}
           />
         )}
       </div>
@@ -274,6 +282,7 @@ function renderPlannedPage({
           hsnList={hsnSlice}
           showTop={showTop}
           showTerms={showTerms}
+          showEmptyItemsHeader
         />
       </div>
     );

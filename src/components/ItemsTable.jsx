@@ -14,11 +14,12 @@ export default function ItemsTable({
   fillerCount = 0,
   suppressTotal = false,
   pushTotalToBottom = false, // when true, filler rows go BEFORE Total to pin it to the bottom
+  hasFollowingSummary = false,
 }) {
   const totalRowCellStyle = baseTotalRowCellStyle;
 
   return (
-    <div className="items-table-wrap">
+    <div className={`items-table-wrap${hasFollowingSummary ? ' items-table-wrap-with-summary' : ''}`}>
       <table className="items-table" style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
         <thead>
           <tr>
@@ -41,7 +42,7 @@ export default function ItemsTable({
               borderLeft: borderStyle,
               borderRight: borderStyle,
               borderTop: 'none',
-              borderBottom: isLastDataRow && !pushTotalToBottom ? borderStyle : 'none',
+              borderBottom: isLastDataRow && !pushTotalToBottom && !hasFollowingSummary ? borderStyle : 'none',
             };
 
             return (
