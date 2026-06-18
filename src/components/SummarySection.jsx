@@ -186,11 +186,11 @@ export function SummaryTop({ data }) {
 
         <tr>
           {/* Wide E-Invoice QR section */}
-          <td colSpan={5} style={{ border: B, padding: '6px 10px', verticalAlign: 'top', textAlign: 'left' }}>
+          <td colSpan={4} style={{ border: B, padding: '4px 6px', verticalAlign: 'top', textAlign: 'left' }}>
             {ebill && !qrFailed && (
               <img
                 src={ebill}
-                style={{ width: '112px', height: '112px', objectFit: 'contain', display: 'block' }}
+                style={{ width: '100px', height: '100px', objectFit: 'contain', display: 'block' }}
                 alt="E-Invoice QR"
                 onError={() => setQrFailed(true)}
               />
@@ -198,17 +198,17 @@ export function SummaryTop({ data }) {
           </td>
 
           {/* Narrow Scan and Pay section */}
-          <td colSpan={2} style={{ border: B, textAlign: 'center', padding: '6px', verticalAlign: 'top' }}>
+          <td colSpan={2} style={{ border: B, textAlign: 'center', padding: '4px', verticalAlign: 'top' }}>
             <img
               src="https://qrcode.tec-it.com/API/QRCode?data=upi%3A%2F%2Fpay%3Fpa%3Dpaytmqr1nxn70zbes%40paytm%26pn%3DPaytm&size=5"
               alt="Scan and Pay QR"
-              style={{ width: '112px', height: '112px', display: 'block', margin: '0 auto', objectFit: 'contain' }}
+              style={{ width: '96px', height: '96px', display: 'block', margin: '0 auto', objectFit: 'contain' }}
             />
             <p style={{ margin: '2px 0 0 0', fontSize: '8pt', fontWeight: 'bold' }}>Scan and Pay</p>
           </td>
 
           {/* Notes section */}
-          <td colSpan={3} style={{ border: B, padding: '6px', verticalAlign: 'top', fontSize: '9pt' }}>
+          <td colSpan={4} style={{ border: B, padding: '3px 5px', verticalAlign: 'top', fontSize: '8.5pt' }}>
             Notes:
           </td>
         </tr>
