@@ -310,13 +310,14 @@ export function buildHsnList(lineItems, expectedTotalTax = null) {
   for (const item of lineItems) {
     const hsn = item.hsnCode;
     const taxValue = item.gst;
+    const hsnTaxKey = `${hsn}__${Number(taxValue).toFixed(4)}`;
     const taxAmount = item.taxAmount ?? ((item.amount * item.gst) / (100 + item.gst));
     const totalAmount = item.hsnTotalAmount ?? item.amount;
-    if (hsnMap[hsn]) {
-      hsnMap[hsn].Tax_Amount += taxAmount;
-      hsnMap[hsn].Total_Amount += totalAmount;
+    if (hsnMap[hsnTaxKey]) {
+      hsnMap[hsnTaxKey].Tax_Amount += taxAmount;
+      hsnMap[hsnTaxKey].Total_Amount += totalAmount;
     } else {
-      hsnMap[hsn] = {
+      hsnMap[hsnTaxKey] = {
         HSN: hsn,
         Tax_Value: taxValue,
         Tax_Amount: taxAmount,
@@ -327,7 +328,7 @@ export function buildHsnList(lineItems, expectedTotalTax = null) {
 
   const hsnList = Object.values(hsnMap);
   const invoiceTax = Number(expectedTotalTax);
-  if (Number.isFinite(invoiceTax) && hsnList.length > 0) {
+  if (expectedTotalTax !== null && expectedTotalTax !== undefined && expectedTotalTax !== '' && Number.isFinite(invoiceTax) && hsnList.length > 0) {
     const hsnTaxTotal = hsnList.reduce((sum, item) => sum + item.Tax_Amount, 0);
     const taxDifference = Number((invoiceTax - hsnTaxTotal).toFixed(2));
 
