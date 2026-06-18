@@ -301,7 +301,7 @@ function renderPlannedPage({
 
 export function InvoiceCopy({ data, copyLabel, isLastCopy, invoiceId }) {
   const { lineItems } = data;
-  const hsnList  = buildHsnList(lineItems);
+  const hsnList  = buildHsnList(lineItems, data.totaltax);
   const gross    = data.gross;
   const grossEng = numberToWords(gross);
   const totalqty = lineItems.reduce((s, i) => s + i.qty, 0);

@@ -191,7 +191,8 @@ export function mapCreatorRecordToInvoice(record) {
       item.Qty,
     ));
     const rate = toNumber(item.RATE);
-    const amount = toNumber(pickFirstValue(item.TOTAL_AMOUNT, item.AMOUNT, quantity * rate));
+    const amount = toNumber(pickFirstValue(item.AMOUNT, item.Amount, item.TOTAL_AMOUNT, quantity * rate));
+    const hsnTotalAmount = toNumber(pickFirstValue(item.TOTAL_AMOUNT, amount));
     const gst = extractPercent(item.Tax);
 
     return {
@@ -203,7 +204,14 @@ export function mapCreatorRecordToInvoice(record) {
       qty: quantity,
       rate,
       amount,
-      taxAmount: toNumber(item.Tax_amount),
+      hsnTotalAmount,
+      taxAmount: toNumber(pickFirstValue(
+        item.Tax_Amount,
+        item.Tax_amount,
+        item.TAX_AMOUNT,
+        item.TaxAmount,
+        item['Tax Amount'],
+      )),
     };
   });
 
@@ -297,13 +305,13 @@ export function mapCreatorRecordToInvoice(record) {
 }
 
 // Build HSN grouped list from line items
-export function buildHsnList(lineItems) {
+export function buildHsnList(lineItems, expectedTotalTax = null) {
   const hsnMap = {};
   for (const item of lineItems) {
     const hsn = item.hsnCode;
     const taxValue = item.gst;
     const taxAmount = item.taxAmount ?? ((item.amount * item.gst) / (100 + item.gst));
-    const totalAmount = item.amount;
+    const totalAmount = item.hsnTotalAmount ?? item.amount;
     if (hsnMap[hsn]) {
       hsnMap[hsn].Tax_Amount += taxAmount;
       hsnMap[hsn].Total_Amount += totalAmount;
@@ -316,7 +324,22 @@ export function buildHsnList(lineItems) {
       };
     }
   }
-  return Object.values(hsnMap);
+
+  const hsnList = Object.values(hsnMap);
+  const invoiceTax = Number(expectedTotalTax);
+  if (Number.isFinite(invoiceTax) && hsnList.length > 0) {
+    const hsnTaxTotal = hsnList.reduce((sum, item) => sum + item.Tax_Amount, 0);
+    const taxDifference = Number((invoiceTax - hsnTaxTotal).toFixed(2));
+
+    if (taxDifference !== 0) {
+      const adjustmentTarget = hsnList.reduce((largest, item) =>
+        item.Total_Amount > largest.Total_Amount ? item : largest
+      );
+      adjustmentTarget.Tax_Amount = Number((adjustmentTarget.Tax_Amount + taxDifference).toFixed(2));
+    }
+  }
+
+  return hsnList;
 }
 
 // Convert number to words (en-us style)

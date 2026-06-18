@@ -217,10 +217,20 @@ export function SummaryTop({ data }) {
   );
 }
 
-export function HsnTable({ hsnList }) {
+function shouldUseIgst(placeOfSupply) {
+  const normalizedPlace = String(placeOfSupply || '').trim().toUpperCase();
+  if (!normalizedPlace) return false;
+  return !(normalizedPlace === 'KL' || normalizedPlace.startsWith('KL ') || normalizedPlace.includes('KERALA'));
+}
+
+export function HsnTable({ hsnList, placeOfSupply }) {
   if (!hsnList || hsnList.length === 0) {
     return null;
   }
+
+  const useIgst = shouldUseIgst(placeOfSupply);
+  const headerCellStyle = { border: B, fontWeight: 'bold', padding: '2px 4px', lineHeight: 1.1 };
+  const bodyCellStyle = { border: B, fontWeight: 'bold', padding: '1px 4px', lineHeight: 1.1 };
 
   return (
     <table
@@ -231,29 +241,48 @@ export function HsnTable({ hsnList }) {
     >
       <thead>
         <tr>
-          <th rowSpan="2" style={{ border: B, fontWeight: 'bold', padding: '2px 4px', lineHeight: 1.1 }}>HSN/SAC</th>
-          <th rowSpan="2" style={{ border: B, fontWeight: 'bold', padding: '2px 4px', lineHeight: 1.1 }}>Taxable Value</th>
-          <th colSpan="2" style={{ border: B, fontWeight: 'bold', padding: '2px 4px', lineHeight: 1.1 }}>Central Tax</th>
-          <th colSpan="2" style={{ border: B, fontWeight: 'bold', padding: '2px 4px', lineHeight: 1.1 }}>State Tax</th>
-          <th rowSpan="2" style={{ border: B, fontWeight: 'bold', padding: '2px 4px', lineHeight: 1.1 }}>Total Tax Amount</th>
+          <th rowSpan="2" style={headerCellStyle}>HSN/SAC</th>
+          <th rowSpan="2" style={headerCellStyle}>Taxable Value</th>
+          {useIgst ? (
+            <th colSpan="2" style={headerCellStyle}>IGST</th>
+          ) : (
+            <>
+              <th colSpan="2" style={headerCellStyle}>Central Tax</th>
+              <th colSpan="2" style={headerCellStyle}>State Tax</th>
+            </>
+          )}
+          <th rowSpan="2" style={headerCellStyle}>Total Tax Amount</th>
         </tr>
         <tr>
-          <th style={{ border: B, fontWeight: 'bold', padding: '2px 4px', lineHeight: 1.1 }}>Rate</th>
-          <th style={{ border: B, fontWeight: 'bold', padding: '2px 4px', lineHeight: 1.1 }}>Amount</th>
-          <th style={{ border: B, fontWeight: 'bold', padding: '2px 4px', lineHeight: 1.1 }}>Rate</th>
-          <th style={{ border: B, fontWeight: 'bold', padding: '2px 4px', lineHeight: 1.1 }}>Amount</th>
+          <th style={headerCellStyle}>Rate</th>
+          <th style={headerCellStyle}>Amount</th>
+          {!useIgst && (
+            <>
+              <th style={headerCellStyle}>Rate</th>
+              <th style={headerCellStyle}>Amount</th>
+            </>
+          )}
         </tr>
       </thead>
       <tbody>
         {hsnList.map((item, idx) => (
           <tr key={idx}>
-            <td style={{ border: B, fontWeight: 'bold', padding: '1px 4px', lineHeight: 1.1 }}>{item.HSN}</td>
-            <td style={{ border: B, fontWeight: 'bold', padding: '1px 4px', lineHeight: 1.1 }}>{item.Total_Amount.toFixed(2)}</td>
-            <td style={{ border: B, fontWeight: 'bold', padding: '1px 4px', lineHeight: 1.1 }}>{(item.Tax_Value / 2).toFixed(1)}</td>
-            <td style={{ border: B, fontWeight: 'bold', padding: '1px 4px', lineHeight: 1.1 }}>{(item.Tax_Amount / 2).toFixed(3)}</td>
-            <td style={{ border: B, fontWeight: 'bold', padding: '1px 4px', lineHeight: 1.1 }}>{(item.Tax_Value / 2).toFixed(1)}</td>
-            <td style={{ border: B, fontWeight: 'bold', padding: '1px 4px', lineHeight: 1.1 }}>{(item.Tax_Amount / 2).toFixed(3)}</td>
-            <td style={{ border: B, fontWeight: 'bold', padding: '1px 4px', lineHeight: 1.1 }}>{item.Tax_Amount.toFixed(2)}</td>
+            <td style={bodyCellStyle}>{item.HSN}</td>
+            <td style={bodyCellStyle}>{item.Total_Amount.toFixed(2)}</td>
+            {useIgst ? (
+              <>
+                <td style={bodyCellStyle}>{item.Tax_Value.toFixed(1)}</td>
+                <td style={bodyCellStyle}>{item.Tax_Amount.toFixed(2)}</td>
+              </>
+            ) : (
+              <>
+                <td style={bodyCellStyle}>{(item.Tax_Value / 2).toFixed(1)}</td>
+                <td style={bodyCellStyle}>{(item.Tax_Amount / 2).toFixed(3)}</td>
+                <td style={bodyCellStyle}>{(item.Tax_Value / 2).toFixed(1)}</td>
+                <td style={bodyCellStyle}>{(item.Tax_Amount / 2).toFixed(3)}</td>
+              </>
+            )}
+            <td style={bodyCellStyle}>{item.Tax_Amount.toFixed(2)}</td>
           </tr>
         ))}
       </tbody>
@@ -316,7 +345,7 @@ export default function SummarySection({
         />
       )}
       {showTop && <SummaryTop data={data} />}
-      <HsnTable hsnList={hsnList} />
+      <HsnTable hsnList={hsnList} placeOfSupply={data.stateCode} />
       {showTerms && (
         <div className="summary-terms-anchor">
           <TermsSection data={data} />
