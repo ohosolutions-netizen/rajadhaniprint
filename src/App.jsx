@@ -12,6 +12,8 @@ const CREATOR_FIELDS = [
   'Sales_Order',
   'Customer_Billing_Address',
   'Customer_Shipping_Address',
+  'Shipping_GST',
+  'Shipping_Phone',
   'Billing_Address',
   'GST_Number',
   'Mobile_Number',

@@ -25,7 +25,7 @@ function cleanCustomerName(name, ...addresses) {
 
 export default function InvoiceHeader({ data, copyLabel, invoiceId }) {
   const {
-    cusName, BillingAddress, ShippingAddress, phone, gstnum, stateCode,
+    cusName, BillingAddress, ShippingAddress, phone, gstnum, shippingPhone, shippingGstnum, stateCode,
     invoicenum, invdate, billtype, invtype, transport, agentName, remark,
     marginTop = '116px',
   } = { ...data, ...data };
@@ -61,7 +61,7 @@ export default function InvoiceHeader({ data, copyLabel, invoiceId }) {
               {stateCode && <div><b>State Code:</b> <span style={{ fontWeight: 400 }}>{stateCode}</span></div>}
             </div>
           </td>
-          <td className="header-party-cell" style={{ width: '37%', border: '1px solid #000' }}>
+          <td className="header-party-cell" style={{ width: '37%', border: '1px solid #000', position: 'relative', paddingBottom: '30px' }}>
             <div className="header-section-title">Ship To:</div>
             <div className="header-party-name">{displayCustomerName || cusName}</div>
             <div className="header-wrap-text">
@@ -73,6 +73,12 @@ export default function InvoiceHeader({ data, copyLabel, invoiceId }) {
                 </React.Fragment>
               ))}
             </div>
+            {(shippingPhone || shippingGstnum) && (
+              <div style={{ position: 'absolute', bottom: '4px', left: '6px', right: '6px' }}>
+                {shippingPhone && <div><b>Phone:</b> {shippingPhone}</div>}
+                {shippingGstnum && <div><b>GSTIN:</b> {shippingGstnum}</div>}
+              </div>
+            )}
           </td>
           <td className="header-details-cell" style={{ width: '26%', border: '1px solid #000', padding: '0px' }}>
             <table className="header-details-table" style={{ width: '100%' }}>

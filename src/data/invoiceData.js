@@ -6,6 +6,8 @@ export const invoiceData = {
   ShippingAddress: "",
   phone: "",
   gstnum: "",
+  shippingPhone: "",
+  shippingGstnum: "",
 
   // Invoice Details
   invoicenum: "",
@@ -248,6 +250,16 @@ export function mapCreatorRecordToInvoice(record) {
     )),
     phone: getDisplayValue(pickFirstValue(record.Mobile_Number, record.Whatsapp_Number)),
     gstnum: getDisplayValue(record.GST_Number),
+    shippingPhone: getDisplayValue(getRecordValueByAliases(record, [
+      'Shipping_Phone',
+      'ShippingPhone',
+      'Shipping Phone',
+    ])),
+    shippingGstnum: getDisplayValue(getRecordValueByAliases(record, [
+      'Shipping_GST',
+      'ShippingGST',
+      'Shipping GST',
+    ])),
     invoicenum: getDisplayValue(record.Invoice_No),
     invdate: normalizeDate(record.Invoice_Date),
     invtype: getDisplayValue(record.Type_field),
