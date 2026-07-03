@@ -90,15 +90,15 @@ body {
     break-after: auto;
   }
   .page-number-label {
-    bottom: 6px;
+    bottom: 18px;
     font-size: 6pt;
     color: #000;
   }
   .a4-page::before {
-    height: 20px;
+    height: 34px;
   }
   .invoice-page-content {
-    padding: 4px 18px 82px;
+    padding: 4px 18px 95px;
   }
   .terms-only-page-shell {
     padding-bottom: 28px;
