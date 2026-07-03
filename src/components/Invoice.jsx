@@ -32,6 +32,9 @@ const HSN_ROW_UNITS = 0.7;
 // Keep print-safe slack because browser print renders slightly taller than preview.
 const TERMS_UNITS = 10;
 
+// Keep the pushed Total Qty row clear of browser print footers.
+const TOTAL_ROW_FOOTER_SLACK = 2;
+
 // ── Chunk helper ───────────────────────────────────────────────────────────
 
 function chunkLineItems(lineItems, chunkSize) {
@@ -118,7 +121,7 @@ function buildInvoicePlan(lineItems, hsnList) {
   }
 
   // Not enough room → push Total row to the page bottom via filler rows.
-  cur.fillerRows = Math.max(0, spare - 1); // spare - 1 accounts for the Total row itself
+  cur.fillerRows = Math.max(0, spare - 1 - TOTAL_ROW_FOOTER_SLACK); // spare - 1 accounts for the Total row itself
 
   // ── Step 2: Fresh Summary page ───────────────────────────────────────────
   // Summary starts here only if it can bring the full HSN + Terms set;
