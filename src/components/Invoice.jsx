@@ -6,9 +6,8 @@ import { buildHsnList, numberToWords } from '../data/invoiceData';
 
 // ── Layout constants (all sizes in 15 px "row-unit" equivalents) ───────────
 
-// Chrome print clips the last row when 44 items share a page with the header.
-// Keep item-only pages at 43 rows so preview and printed output break identically.
-const ITEM_ONLY_PAGE_SIZE = 43;
+// How many data rows fit on a full item page.
+const ITEM_ONLY_PAGE_SIZE = 44;
 
 // Conservative content capacity for a non-item page (post-items / summary / HSN / terms).
 const CONTENT_PAGE_UNITS = 44;

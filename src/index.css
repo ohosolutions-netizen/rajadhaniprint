@@ -99,6 +99,9 @@ body {
   }
   .invoice-page-content {
     padding: 4px 18px 95px;
+    transform: scale(0.98);
+    transform-origin: top left;
+    width: 102.05%;
   }
   .details-table {
     line-height: 1.08;
