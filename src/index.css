@@ -108,19 +108,19 @@ body {
   }
   .items-table th {
     padding: 2px 3px;
-    font-size: 8pt;
+    font-size: 7.75pt;
     line-height: 1.05;
   }
   .items-table td {
     padding: 1px 3px;
-    font-size: 8pt;
+    font-size: 7.75pt;
   }
   .items-row {
-    height: 13px;
+    height: 12px;
   }
   .items-cell {
-    height: 13px;
-    line-height: 9px;
+    height: 12px;
+    line-height: 8.5px;
   }
   .items-table tbody tr:last-child:not(.items-trailing-blank) td,
   .items-table tbody tr:last-child:not(.items-trailing-blank) .items-cell {
