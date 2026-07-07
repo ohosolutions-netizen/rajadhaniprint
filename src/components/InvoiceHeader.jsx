@@ -55,7 +55,7 @@ export default function InvoiceHeader({ data, copyLabel, invoiceId }) {
                 </React.Fragment>
               ))}
             </div>
-            <div style={{ position: 'absolute', bottom: '4px', left: '6px', right: '6px' }}>
+            <div className="header-party-contact" style={{ position: 'absolute', bottom: '4px', left: '6px', right: '6px' }}>
               <div><b>Phone:</b> {phone}</div>
               <div><b>GSTIN:</b> {gstnum}</div>
               {stateCode && <div><b>State Code:</b> <span style={{ fontWeight: 400 }}>{stateCode}</span></div>}
@@ -74,7 +74,7 @@ export default function InvoiceHeader({ data, copyLabel, invoiceId }) {
               ))}
             </div>
             {(shippingPhone || shippingGstnum) && (
-              <div style={{ position: 'absolute', bottom: '4px', left: '6px', right: '6px' }}>
+              <div className="header-party-contact" style={{ position: 'absolute', bottom: '4px', left: '6px', right: '6px' }}>
                 {shippingPhone && <div><b>Phone:</b> {shippingPhone}</div>}
                 {shippingGstnum && <div><b>GSTIN:</b> {shippingGstnum}</div>}
               </div>

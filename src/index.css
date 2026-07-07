@@ -100,6 +100,36 @@ body {
   .invoice-page-content {
     padding: 4px 18px 95px;
   }
+  .details-table {
+    line-height: 1.08;
+  }
+  .header-party-cell {
+    padding-top: 2px !important;
+    padding-bottom: 28px !important;
+    font-size: 7.75pt !important;
+    line-height: 1.08;
+  }
+  .header-details-table td {
+    padding: 2px 5px;
+    font-size: 7.75pt;
+    line-height: 1.05;
+  }
+  .header-wrap-text {
+    line-height: 1.08;
+    margin-bottom: 0;
+  }
+  .header-section-title,
+  .header-party-name {
+    margin-bottom: 0;
+  }
+  .header-party-contact {
+    bottom: 3px !important;
+    line-height: 1.08;
+  }
+  .copy-label {
+    padding: 2px 5px;
+    font-size: 8pt;
+  }
   .terms-only-page-shell {
     padding-bottom: 28px;
   }
