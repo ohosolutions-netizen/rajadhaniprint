@@ -25,7 +25,7 @@ function cleanCustomerName(name, ...addresses) {
 
 export default function InvoiceHeader({ data, copyLabel, invoiceId }) {
   const {
-    cusName, BillingAddress, ShippingAddress, phone, gstnum, shippingPhone, shippingGstnum, stateCode,
+    cusName, BillingAddress, ShippingAddress, phone, gstnum, shippingPhone, shippingGstnum, shippingStateCode, stateCode,
     invoicenum, invdate, billtype, invtype, transport, agentName, remark,
     marginTop = '116px',
   } = { ...data, ...data };
@@ -76,7 +76,7 @@ export default function InvoiceHeader({ data, copyLabel, invoiceId }) {
             <div className="header-party-contact" style={{ position: 'absolute', bottom: '4px', left: '6px', right: '6px' }}>
               <div><b>Phone:</b> {shippingPhone}</div>
               <div><b>GSTIN:</b> {shippingGstnum}</div>
-              <div><b>State Code:</b> <span style={{ fontWeight: 400 }}>{stateCode}</span></div>
+              <div><b>State Code:</b> <span style={{ fontWeight: 400 }}>{shippingStateCode}</span></div>
             </div>
           </td>
           <td className="header-details-cell" style={{ width: '26%', border: '1px solid #000', padding: '0px' }}>

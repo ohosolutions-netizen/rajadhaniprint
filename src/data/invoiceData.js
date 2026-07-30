@@ -8,6 +8,7 @@ export const invoiceData = {
   gstnum: "",
   shippingPhone: "",
   shippingGstnum: "",
+  shippingStateCode: "",
 
   // Invoice Details
   invoicenum: "",
@@ -259,6 +260,12 @@ export function mapCreatorRecordToInvoice(record) {
       'Shipping_GST',
       'ShippingGST',
       'Shipping GST',
+    ])),
+    shippingStateCode: getDisplayValue(getRecordValueByAliases(record, [
+      'State',
+      'Shipping_State',
+      'ShippingState',
+      'Shipping State',
     ])),
     invoicenum: getDisplayValue(record.Invoice_No),
     invdate: normalizeDate(record.Invoice_Date),
