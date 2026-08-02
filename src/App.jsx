@@ -15,7 +15,7 @@ const CREATOR_FIELDS = [
   'Shipping_GST',
   'Shipping_Phone',
   'State_Code',
-  'State',
+  'State Code',
   'Billing_Address',
   'GST_Number',
   'Mobile_Number',
