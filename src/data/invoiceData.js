@@ -262,9 +262,6 @@ export function mapCreatorRecordToInvoice(record) {
       'Shipping GST',
     ])),
     shippingStateCode: getDisplayValue(getRecordValueByAliases(record, [
-      'State_Code',
-      'StateCode',
-      'State Code',
       'State',
       'Shipping_State',
       'ShippingState',
