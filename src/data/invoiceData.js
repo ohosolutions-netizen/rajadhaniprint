@@ -265,6 +265,7 @@ export function mapCreatorRecordToInvoice(record) {
       'State_Code',
       'StateCode',
       'State Code',
+      'State',
       'Shipping_State',
       'ShippingState',
       'Shipping State',
